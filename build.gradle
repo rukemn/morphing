@@ -1,0 +1,47 @@
+plugins {
+    id 'java'
+    id 'idea'
+}
+
+group 'de.kemna'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    compile 'org.junit.jupiter:junit-jupiter:5.6.3'
+    implementation 'com.github.twak:campskeleton:master-SNAPSHOT'
+    //implementation 'com.github.travel-time-maps:master-SNAPSHOT'
+    compile group: 'org.apache.xmlgraphics', name: 'batik-xml', version: '1.1'
+    compile group: 'org.apache.xmlgraphics', name: 'batik-swing', version: '1.14'
+    compile group : 'org.locationtech.jts', name: 'jts-core', version: '1.17.0' //'org.locationtech.jts:jts:1.17.1'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.14.0'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.14.0'
+}
+
+task runOctiLineMatcher(dependsOn: 'classes', type: JavaExec){
+    main = 'morph.OctiLineMatcher'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task runSvgGUI(dependsOn: 'classes', type: JavaExec){
+    main = 'io.SvgExporter'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task runSvgGUIwithArgs(dependsOn: 'classes', type: JavaExec){
+    main = 'io.SvgExporter'
+    classpath = sourceSets.main.runtimeClasspath
+    args 'src/main/resources/squareRightBoomerang.svg'
+}
+
+test{
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
