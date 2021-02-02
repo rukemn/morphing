@@ -31,7 +31,7 @@ import static morph.OctiLineMatcher.*;
 
 /**
  * todo make factory and have config object
- * todo factor out the MatchSquence object
+ * todo seperate frame owner and doc creator
  */
 public class SvgExporter {
 
@@ -42,7 +42,6 @@ public class SvgExporter {
     // The status label.
     protected JLabel statusLabel = new JLabel();
 
-    // The SVG canvas.
     protected JSVGCanvas svgCanvas = new JSVGCanvas();
 
     private int preferredHeight = 1000;
@@ -51,9 +50,6 @@ public class SvgExporter {
     //the svg
     private SVGDocument doc;
 
-    //factor out into dedicated object
-    private OctiLineString src;
-    private OctiLineString tar;
 
     public void show() {
         frame.addWindowListener(new WindowAdapter() {
@@ -72,7 +68,7 @@ public class SvgExporter {
     }
 
     /**
-     * temporary helper method to extract
+     * temporary helper method to extract, sets src and tar fields
      * @return
      */
     private OctiStringAlignment getMatchPath(String svgPath) {
@@ -88,16 +84,13 @@ public class SvgExporter {
         OctiLineString olsSource = ogf.createOctiLineString(importer.getNthPolygon(0).getExteriorRing().getCoordinateSequence());
         OctiLineString olsTarget = ogf.createOctiLineString(importer.getNthPolygon(1).getExteriorRing().getCoordinateSequence());
 
-
         OctiLineMatcher matcher = new OctiLineMatcher(olsSource, olsTarget);
-        this.src = matcher.getSource();
-        this.tar = matcher.getTarget();
 
         try {
             return matcher.getAlignment();
         } catch (NoMinimumOperationException e) {
             e.printStackTrace();
-            logger.error("no valid match");
+            logger.warn("no valid match");
             return null;
         }
     }
@@ -117,28 +110,30 @@ public class SvgExporter {
         SvgExporter exporter = new SvgExporter();
 
         OctiStringAlignment alignment = exporter.getMatchPath(svgPath);
+        exporter.fillSvgDocument(exporter.doc, alignment);
+
+        //set the doc again, otherwise unable to display animation
+        exporter.refreshCanvas(exporter.doc);
         exporter.show();
-        exporter.fillSvgDocument(alignment);
 
     }
 
-    private void fillSvgDocument(OctiStringAlignment alignment){
+    private SVGDocument fillSvgDocument(SVGDocument doc, OctiStringAlignment alignment){
         for(OctiSegmentAlignment sa : alignment){
             logger.trace(sa.getOrientation() +", " + sa.getOperation());
         }
         Pair<String, String> svgAlignmentStrings = parse(alignment);
 
-        Element animation = createAnimationElement(svgAlignmentStrings.first(), svgAlignmentStrings.second(), "red");
+        Element animation = createAnimationElement(doc, svgAlignmentStrings.first(), svgAlignmentStrings.second(), "red");
         doc.getDocumentElement().appendChild(animation);
 
-        Element polylineSrc = createPolyLineElement(src, "blue");
-        Element polylineTar = createPolyLineElement(tar, "green");
+        Element polylineSrc = createPolyLineElement(doc, alignment.getSourceString(), "blue");
+        Element polylineTar = createPolyLineElement(doc, alignment.getTargetString(), "green");
 
         doc.getDocumentElement().appendChild(polylineSrc);
         doc.getDocumentElement().appendChild(polylineTar);
 
-        //set the doc again, otherwise unable to display animation
-        svgCanvas.setDocument(doc);
+        return doc;
     }
 
     /** Deprecated
@@ -146,7 +141,7 @@ public class SvgExporter {
      * @param match
      * @return
      */
-    private Pair<String, String> parse(List<Pair<Pair<Integer, Integer>, Integer>> match) {
+    private Pair<String, String> parse(OctiLineString src, OctiLineString tar, List<Pair<Pair<Integer, Integer>, Integer>> match) {
         StringBuilder srcBuilder = new StringBuilder();
         StringBuilder tarBuilder = new StringBuilder();
 
@@ -158,8 +153,8 @@ public class SvgExporter {
         //from and to attributes
         String sourceString = srcBuilder.substring(0, srcBuilder.length() - 1);
         String targetString = tarBuilder.substring(0, tarBuilder.length() - 1);
-        logger.trace(sourceString.toString());
-        logger.trace(tarBuilder.toString());
+        logger.trace(sourceString);
+        logger.trace(targetString);
         Pair<String, String> svgStrings = new Pair<>(sourceString, targetString);
 
 
@@ -197,13 +192,14 @@ public class SvgExporter {
     /**
      * Creates an svg marker-Element
      *
+     * @param creationDoc the document used to create elements
      * @param id    the id with which the marker element can be referenced
      * @param color the color in which the markers are to be painted
      * @return the created marker-Element
      */
-    public Element createMarkers(String id, String color) {
+    public Element createMarkers(SVGDocument creationDoc, String id, String color) {
         String nameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
-        Element marker = doc.createElementNS(nameSpace, "marker");
+        Element marker = creationDoc.createElementNS(nameSpace, "marker");
 
         marker.setAttributeNS(null, "id", id);
         marker.setAttributeNS(null, "markerWidth", "4");
@@ -212,7 +208,7 @@ public class SvgExporter {
         marker.setAttributeNS(null, "refY", "2");
 
         //now the shape
-        Element circle = doc.createElementNS(nameSpace, "circle");
+        Element circle = creationDoc.createElementNS(nameSpace, "circle");
         circle.setAttributeNS(null, "cx", "2");
         circle.setAttributeNS(null, "cy", "2");
         circle.setAttributeNS(null, "r", "2");
@@ -226,15 +222,16 @@ public class SvgExporter {
     /**
      * Creates an svg Polyline-Element
      *
+     * @param creationDoc the document used to create elements
      * @param lineString the linestring from which the "points"-attribute of the Polyline-Element is derived
      * @param color      the color in which the linestring is to be painted
      * @return the newly created polyline-Element
      */
-    public Element createPolyLineElement(OctiLineString lineString, String color) {
+    public Element createPolyLineElement(SVGDocument creationDoc, OctiLineString lineString, String color) {
         String nameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
 
-        Element polyGroup = doc.createElementNS(nameSpace, "g");
-        Element polyLineElement = doc.createElementNS(nameSpace, "polyline");
+        Element polyGroup = creationDoc.createElementNS(nameSpace, "g");
+        Element polyLineElement = creationDoc.createElementNS(nameSpace, "polyline");
 
         polyLineElement.setAttributeNS(null, "stroke", color);
         polyLineElement.setAttributeNS(null, "stroke-width", "3");
@@ -248,31 +245,32 @@ public class SvgExporter {
         polyLineElement.setAttributeNS(null, "points", polyLineString);
 
         String markerId = color + "Circle";
-        Element markerElement = createMarkers(markerId, color);
+        Element markerElement = createMarkers(creationDoc, markerId, color);
         polyGroup.appendChild(markerElement);
         polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + markerId + ")");
         polyGroup.appendChild(polyLineElement);
 
         return polyGroup;
     }
+
     /**
      * Creates an svg polyline-Element
-     *
+     * @param creationDoc the document used to create elements
      * @param from the linestring from which the "points"-attribute of the Polyline-Element is derived
      * @param to the linestring from which the "points"-attribute of the Polyline-Element is derived
      * @param color      the color in which the linestring is to be painted
      * @return the newly created polyline-Element
      */
-    public Element createAnimationElement(String from, String to, String color) {
+    public Element createAnimationElement(SVGDocument creationDoc, String from, String to, String color) {
         String svgNameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
-        Element polyGroup = doc.createElementNS(svgNameSpace, "g");
-        Element polyLineElement = doc.createElementNS(svgNameSpace, "polyline");
+        Element polyGroup = creationDoc.createElementNS(svgNameSpace, "g");
+        Element polyLineElement = creationDoc.createElementNS(svgNameSpace, "polyline");
 
         polyLineElement.setAttributeNS(null, "stroke", color);
         polyLineElement.setAttributeNS(null, "stroke-width", "3");
         polyLineElement.setAttributeNS(null, "fill", "none");
 
-        Element animateElement = doc.createElementNS(svgNameSpace, "animate");
+        Element animateElement = creationDoc.createElementNS(svgNameSpace, "animate");
         animateElement.setAttributeNS(null, "attributeName", "points");
         animateElement.setAttributeNS(null, "dur", "5s");
         animateElement.setAttributeNS(null, "repeatCount", "indefinite");
@@ -282,8 +280,8 @@ public class SvgExporter {
 
         String markerId = color + "Circle";
         String startMarkerId = color + "StartCircle";
-        Element markerElement = createMarkers(markerId, color);
-        Element startMarkerElement = createMarkers(startMarkerId, "green");
+        Element markerElement = createMarkers(creationDoc,markerId, color);
+        Element startMarkerElement = createMarkers(creationDoc, startMarkerId, "green");
         polyGroup.appendChild(markerElement);
         polyGroup.appendChild(startMarkerElement);
         polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + markerId + ")");
@@ -304,8 +302,11 @@ public class SvgExporter {
         return doc;
     }
 
-    public JComponent createPanel(SVGDocument d) {
+    private void refreshCanvas(SVGDocument d){
         svgCanvas.setDocument(d);
+    }
+    public JComponent createPanel(SVGDocument d) {
+        refreshCanvas(d);
         final JPanel panel = new JPanel(new BorderLayout());
         final JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
@@ -316,9 +317,9 @@ public class SvgExporter {
         statusLabel.setText("status text here");
         panel.add(actionsPanel, BorderLayout.NORTH);
         panel.add(svgCanvas, BorderLayout.CENTER);
-
         return panel;
     }
+
 
     private String getFileExtension(String fullFileName) {
         int lastDotIndex = fullFileName.lastIndexOf('.');
@@ -346,7 +347,17 @@ public class SvgExporter {
                         logger.warn("didn't select a svg file");
                         statusLabel.setText("didn't select a svg file");
                     }
-                    svgCanvas.setURI(f.toURI().toString());
+                    SvgPolygonExtractor x = new SvgPolygonExtractor();
+                    try {
+                        x.parseSvg(f.toURI().toString());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    SVGDocument newDoc = createSVGDocument();
+                    OctiStringAlignment newAlignment =getMatchPath(f.toURI().toString());
+                    fillSvgDocument(newDoc, newAlignment);
+                    refreshCanvas(newDoc);
+                    doc = newDoc;
                     svgCanvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
                 }
             }
