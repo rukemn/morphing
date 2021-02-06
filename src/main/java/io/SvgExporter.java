@@ -49,7 +49,9 @@ public class SvgExporter {
 
     //the svg
     private SVGDocument doc;
-
+    private SvgGenerator generator = new SvgGenerator();
+    private String svgDirectory = "./src/main/resources";
+    private String defaultSvg = "squareRightBoomerang.svg";
 
     public void show() {
         frame.addWindowListener(new WindowAdapter() {
@@ -57,14 +59,10 @@ public class SvgExporter {
                 System.exit(0);
             }
         });
-
-        frame.getContentPane().add(this.createPanel(doc));
+        refreshCanvas(doc);
+        frame.getContentPane().add(this.createPanel());
         frame.setSize(preferredWidth, preferredHeight); //frame.pack();
         frame.setVisible(true);
-
-        //frame.revalidate();
-        //frame.doLayout();
-        //frame.repaint(0,0,1000,1000);
     }
 
     /**
@@ -96,44 +94,13 @@ public class SvgExporter {
     }
 
     public SvgExporter() {
-        this.doc = this.createSVGDocument();
+        OctiStringAlignment alignments = getMatchPath("src/main/resources/squareRightBoomerang.svg");
+        this.doc = generator.generateSVG(alignments);
     }
 
     public static void main(String[] args) {
-        String svgPath;
-        if(args.length == 1){ //interpret arg as path
-            svgPath = args[0];
-        }else{
-            svgPath = "src/main/resources/squareRightBoomerang.svg";
-        }
-        logger.warn("test");
         SvgExporter exporter = new SvgExporter();
-
-        OctiStringAlignment alignment = exporter.getMatchPath(svgPath);
-        exporter.fillSvgDocument(exporter.doc, alignment);
-
-        //set the doc again, otherwise unable to display animation
-        exporter.refreshCanvas(exporter.doc);
         exporter.show();
-
-    }
-
-    private SVGDocument fillSvgDocument(SVGDocument doc, OctiStringAlignment alignment){
-        for(OctiSegmentAlignment sa : alignment){
-            logger.trace(sa.getOrientation() +", " + sa.getOperation());
-        }
-        Pair<String, String> svgAlignmentStrings = parse(alignment);
-
-        Element animation = createAnimationElement(doc, svgAlignmentStrings.first(), svgAlignmentStrings.second(), "red");
-        doc.getDocumentElement().appendChild(animation);
-
-        Element polylineSrc = createPolyLineElement(doc, alignment.getSourceString(), "blue");
-        Element polylineTar = createPolyLineElement(doc, alignment.getTargetString(), "green");
-
-        doc.getDocumentElement().appendChild(polylineSrc);
-        doc.getDocumentElement().appendChild(polylineTar);
-
-        return doc;
     }
 
     /** Deprecated
@@ -161,152 +128,11 @@ public class SvgExporter {
         return svgStrings;
     }
 
-    private Pair<String, String> parse(OctiStringAlignment alignments) {
-        StringBuilder srcBuilder = new StringBuilder();
-        StringBuilder tarBuilder = new StringBuilder();
-
-        Iterator<OctiSegmentAlignment> segmentIter = alignments.iterator();
-        if(segmentIter.hasNext()){
-            OctiSegmentAlignment first = segmentIter.next();
-            srcBuilder.append(first.getSourceStart().x).append(",").append(first.getSourceStart().y).append(" ");
-            tarBuilder.append(first.getTargetStart().x).append(",").append(first.getTargetStart().y).append(" ");
-
-            srcBuilder.append(first.getSourceEnd().x).append(",").append(first.getSourceEnd().y).append(" ");
-            tarBuilder.append(first.getTargetEnd().x).append(",").append(first.getTargetEnd().y).append(" ");
-        }
-
-        while(segmentIter.hasNext()) {
-            OctiSegmentAlignment alignment = segmentIter.next();
-            srcBuilder.append(alignment.getSourceEnd().x).append(",").append(alignment.getSourceEnd().y).append(" ");
-            tarBuilder.append(alignment.getTargetEnd().x).append(",").append(alignment.getTargetEnd().y).append(" ");
-
-        }
-
-        String sourceString = srcBuilder.toString();
-        String targetString = tarBuilder.toString();
-        logger.trace(sourceString);
-        logger.trace(targetString);
-        return new Pair<>(sourceString, targetString);
-    }
-
-    /**
-     * Creates an svg marker-Element
-     *
-     * @param creationDoc the document used to create elements
-     * @param id    the id with which the marker element can be referenced
-     * @param color the color in which the markers are to be painted
-     * @return the created marker-Element
-     */
-    public Element createMarkers(SVGDocument creationDoc, String id, String color) {
-        String nameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
-        Element marker = creationDoc.createElementNS(nameSpace, "marker");
-
-        marker.setAttributeNS(null, "id", id);
-        marker.setAttributeNS(null, "markerWidth", "4");
-        marker.setAttributeNS(null, "markerHeight", "4");
-        marker.setAttributeNS(null, "refX", "2");
-        marker.setAttributeNS(null, "refY", "2");
-
-        //now the shape
-        Element circle = creationDoc.createElementNS(nameSpace, "circle");
-        circle.setAttributeNS(null, "cx", "2");
-        circle.setAttributeNS(null, "cy", "2");
-        circle.setAttributeNS(null, "r", "2");
-        circle.setAttributeNS(null, "stroke", "none");
-        circle.setAttributeNS(null, "fill", color);
-
-        marker.appendChild(circle);
-        return marker;
-    }
-
-    /**
-     * Creates an svg Polyline-Element
-     *
-     * @param creationDoc the document used to create elements
-     * @param lineString the linestring from which the "points"-attribute of the Polyline-Element is derived
-     * @param color      the color in which the linestring is to be painted
-     * @return the newly created polyline-Element
-     */
-    public Element createPolyLineElement(SVGDocument creationDoc, OctiLineString lineString, String color) {
-        String nameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
-
-        Element polyGroup = creationDoc.createElementNS(nameSpace, "g");
-        Element polyLineElement = creationDoc.createElementNS(nameSpace, "polyline");
-
-        polyLineElement.setAttributeNS(null, "stroke", color);
-        polyLineElement.setAttributeNS(null, "stroke-width", "3");
-        polyLineElement.setAttributeNS(null, "fill", "none");
-
-        StringBuilder sb = new StringBuilder();
-        for (Coordinate c : lineString.getCoordinates()) {
-            sb.append(c.x).append(",").append(c.y).append(" ");
-        }
-        String polyLineString = sb.substring(0, sb.length() - 1);
-        polyLineElement.setAttributeNS(null, "points", polyLineString);
-
-        String markerId = color + "Circle";
-        Element markerElement = createMarkers(creationDoc, markerId, color);
-        polyGroup.appendChild(markerElement);
-        polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + markerId + ")");
-        polyGroup.appendChild(polyLineElement);
-
-        return polyGroup;
-    }
-
-    /**
-     * Creates an svg polyline-Element
-     * @param creationDoc the document used to create elements
-     * @param from the linestring from which the "points"-attribute of the Polyline-Element is derived
-     * @param to the linestring from which the "points"-attribute of the Polyline-Element is derived
-     * @param color      the color in which the linestring is to be painted
-     * @return the newly created polyline-Element
-     */
-    public Element createAnimationElement(SVGDocument creationDoc, String from, String to, String color) {
-        String svgNameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
-        Element polyGroup = creationDoc.createElementNS(svgNameSpace, "g");
-        Element polyLineElement = creationDoc.createElementNS(svgNameSpace, "polyline");
-
-        polyLineElement.setAttributeNS(null, "stroke", color);
-        polyLineElement.setAttributeNS(null, "stroke-width", "3");
-        polyLineElement.setAttributeNS(null, "fill", "none");
-
-        Element animateElement = creationDoc.createElementNS(svgNameSpace, "animate");
-        animateElement.setAttributeNS(null, "attributeName", "points");
-        animateElement.setAttributeNS(null, "dur", "5s");
-        animateElement.setAttributeNS(null, "repeatCount", "indefinite");
-        animateElement.setAttributeNS(null, "from", from);
-        animateElement.setAttributeNS(null, "to", to);
-        polyLineElement.appendChild(animateElement);
-
-        String markerId = color + "Circle";
-        String startMarkerId = color + "StartCircle";
-        Element markerElement = createMarkers(creationDoc,markerId, color);
-        Element startMarkerElement = createMarkers(creationDoc, startMarkerId, "green");
-        polyGroup.appendChild(markerElement);
-        polyGroup.appendChild(startMarkerElement);
-        polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + markerId + ")");
-        polyLineElement.setAttributeNS(null, "marker-start", "url(#" + startMarkerId + ")");
-        polyGroup.appendChild(polyLineElement);
-
-        return polyGroup;
-    }
-
-    public SVGDocument createSVGDocument() {
-        DOMImplementation impl = SVGDOMImplementation.getDOMImplementation();
-        String svgNameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
-        SVGDocument doc = (SVGDocument) impl.createDocument(svgNameSpace, "svg", null);
-        Element svgRoot = doc.getDocumentElement();
-        svgRoot.setAttributeNS(null, "width", "1000");
-        svgRoot.setAttributeNS(null, "height", "1000");
-
-        return doc;
-    }
-
     private void refreshCanvas(SVGDocument d){
         svgCanvas.setDocument(d);
     }
-    public JComponent createPanel(SVGDocument d) {
-        refreshCanvas(d);
+
+    public JComponent createPanel() {
         final JPanel panel = new JPanel(new BorderLayout());
         final JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
@@ -320,7 +146,6 @@ public class SvgExporter {
         return panel;
     }
 
-
     private String getFileExtension(String fullFileName) {
         int lastDotIndex = fullFileName.lastIndexOf('.');
         int fileNameStartWithoutDir = Math.max(fullFileName.lastIndexOf('/'), fullFileName.lastIndexOf('\\'));
@@ -331,7 +156,7 @@ public class SvgExporter {
         JButton button = new JButton(buttonText);
         button.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ae) {
-                JFileChooser fc = new JFileChooser("./src/main/resources");
+                JFileChooser fc = new JFileChooser(svgDirectory);
                 int choice = fc.showOpenDialog(parent);
                 if (choice == JFileChooser.APPROVE_OPTION) {
                     File f = fc.getSelectedFile();
@@ -353,12 +178,12 @@ public class SvgExporter {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    SVGDocument newDoc = createSVGDocument();
-                    OctiStringAlignment newAlignment =getMatchPath(f.toURI().toString());
-                    fillSvgDocument(newDoc, newAlignment);
-                    refreshCanvas(newDoc);
-                    doc = newDoc;
                     svgCanvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
+                    OctiStringAlignment newAlignment =getMatchPath(f.toURI().toString());
+                    doc = generator.generateSVG(newAlignment);
+
+                    refreshCanvas(doc);
+
                 }
             }
         });
