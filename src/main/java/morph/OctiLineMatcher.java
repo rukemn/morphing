@@ -10,6 +10,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineString;
 import org.twak.utils.Pair;
 import scoringStrategies.BaseMatchStrategy;
+import scoringStrategies.TargetVisibleStrategy;
 import scoringStrategies.VisibilityMatchStrategy;
 
 import java.io.IOException;
@@ -73,17 +74,18 @@ public class OctiLineMatcher {
         source = sourceLineString.makeNthPointTheFirst(starts[0]);
         target = targetLineString.makeNthPointTheFirst(starts[1]);
         //must be after roation
-        OctiLineSegment.setStrategy(new VisibilityMatchStrategy(new BaseMatchStrategy()), source, target);
+        OctiLineSegment.setStrategy(new TargetVisibleStrategy(new BaseMatchStrategy()), source, target);
 
         initBoard();
         iterateBoard();
 
+        /*
         //todo debug code
         Map<Pair<Coordinate, Coordinate>, Boolean> vis = ((VisibilityMatchStrategy) OctiLineSegment.strategy).visibilityMap;
 
         for (Map.Entry<Pair<Coordinate, Coordinate>, Boolean> e : vis.entrySet()) {
             logger.trace(e.getKey().first() + " can see " + e.getKey().second() + " : " + e.getValue().toString());
-        }
+        }*/
     }
 
     /**
