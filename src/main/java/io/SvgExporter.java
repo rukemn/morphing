@@ -44,13 +44,13 @@ public class SvgExporter {
 
     protected JSVGCanvas svgCanvas = new JSVGCanvas();
 
-    private int preferredHeight = 1000;
-    private int preferredWidth = 1000;
+    private int preferredHeight = 500;
+    private int preferredWidth = 600;
 
     //the svg
     private SVGDocument doc;
     private SvgGenerator generator = new SvgGenerator();
-    private String svgDirectory = "./src/main/resources";
+    private String svgDirectory = "./src/main/resources/";
     private String defaultSvg = "squareRightBoomerang.svg";
 
     public void show() {
@@ -94,7 +94,7 @@ public class SvgExporter {
     }
 
     public SvgExporter() {
-        OctiStringAlignment alignments = getMatchPath("src/main/resources/squareRightBoomerang.svg");
+        OctiStringAlignment alignments = getMatchPath(svgDirectory + defaultSvg);
         this.doc = generator.generateSVG(alignments);
     }
 
@@ -130,6 +130,8 @@ public class SvgExporter {
 
     private void refreshCanvas(SVGDocument d){
         svgCanvas.setDocument(d);
+        frame.pack();
+
     }
 
     public JComponent createPanel() {
@@ -160,12 +162,6 @@ public class SvgExporter {
                 int choice = fc.showOpenDialog(parent);
                 if (choice == JFileChooser.APPROVE_OPTION) {
                     File f = fc.getSelectedFile();
-                    /*try {
-                        svgCanvas.setURI(f.toURI().toString());
-                        svgCanvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
-                    }*/
                     logger.trace(f.toURI().toString());
                     String ext = getFileExtension(f.toURI().toString());
                     if (ext == null || !ext.equals("svg")) {

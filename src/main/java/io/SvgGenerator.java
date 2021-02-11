@@ -7,10 +7,12 @@ import org.apache.batik.anim.dom.SVGDOMImplementation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
 import org.twak.utils.Pair;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Element;
 import org.w3c.dom.svg.SVGDocument;
+
 import java.util.Iterator;
 
 
@@ -19,6 +21,30 @@ import java.util.Iterator;
  */
 public class SvgGenerator {
 
+    public class Config {
+
+        public Config(boolean showSource, boolean showTarget, boolean showAnimation,
+                      String sourceColor, String targetColor, String animationColor, String startPointColor) {
+
+            this.showSource = showSource;
+            this.showTarget = showTarget;
+            this.showAnimation = showAnimation;
+            this.sourceColor = sourceColor;
+            this.targetColor = targetColor;
+            this.animationColor = animationColor;
+            this.startPointColor = startPointColor;
+        }
+
+        public boolean showSource;
+        public boolean showTarget;
+        public boolean showAnimation;
+        public String sourceColor;
+        public String targetColor;
+        public String animationColor;
+        public String startPointColor;
+    }
+
+    private Config config = new Config(true, true, true, "blue", "green", "red", "purple");
     private static final Logger logger = LogManager.getLogger();
 
     private Pair<String, String> parse(OctiStringAlignment alignments) {
@@ -26,7 +52,7 @@ public class SvgGenerator {
         StringBuilder tarBuilder = new StringBuilder();
 
         Iterator<OctiSegmentAlignment> segmentIter = alignments.iterator();
-        if(segmentIter.hasNext()){
+        if (segmentIter.hasNext()) {
             OctiSegmentAlignment first = segmentIter.next();
             srcBuilder.append(first.getSourceStart().x).append(",").append(first.getSourceStart().y).append(" ");
             tarBuilder.append(first.getTargetStart().x).append(",").append(first.getTargetStart().y).append(" ");
@@ -35,7 +61,7 @@ public class SvgGenerator {
             tarBuilder.append(first.getTargetEnd().x).append(",").append(first.getTargetEnd().y).append(" ");
         }
 
-        while(segmentIter.hasNext()) {
+        while (segmentIter.hasNext()) {
             OctiSegmentAlignment alignment = segmentIter.next();
             srcBuilder.append(alignment.getSourceEnd().x).append(",").append(alignment.getSourceEnd().y).append(" ");
             tarBuilder.append(alignment.getTargetEnd().x).append(",").append(alignment.getTargetEnd().y).append(" ");
@@ -49,10 +75,9 @@ public class SvgGenerator {
         return new Pair<>(sourceString, targetString);
     }
 
-    public SVGDocument generateSVG(OctiStringAlignment alignments){
+    public SVGDocument generateSVG(OctiStringAlignment alignments) {
         SVGDocument doc = createSVGDocument();
-        Pair<String, String> fromAndTo = parse(alignments);
-        fillSvgDocument(doc,alignments);
+        fillSvgDocument(doc, alignments);
         return doc;
 
     }
@@ -61,37 +86,69 @@ public class SvgGenerator {
         DOMImplementation impl = SVGDOMImplementation.getDOMImplementation();
         String svgNameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
         SVGDocument doc = (SVGDocument) impl.createDocument(svgNameSpace, "svg", null);
-        Element svgRoot = doc.getDocumentElement();
-        svgRoot.setAttributeNS(null, "width", "1000");
-        svgRoot.setAttributeNS(null, "height", "1000");
+
 
         return doc;
     }
 
-    private SVGDocument fillSvgDocument(SVGDocument doc, OctiStringAlignment alignment){
-        for(OctiSegmentAlignment sa : alignment){
-            logger.trace(sa.getOrientation() +", " + sa.getOperation());
+
+    private SVGDocument setViewBox(SVGDocument doc, OctiStringAlignment alignment) {
+        Element svgRoot = doc.getDocumentElement();
+        Envelope env = alignment.getEnvelope();
+        double marginX = env.getHeight() * 0.1;
+        double marginY = env.getWidth() * 0.1;
+        String viewBoxValue = "" +
+                (env.getMinX() - marginX) + " " +
+                (env.getMinY() - marginY) + " " +
+                (env.getWidth() * 1.2) + " " +
+                (env.getHeight() * 1.2);
+        logger.warn("viewBox" + viewBoxValue);
+        svgRoot.setAttributeNS(null, "viewBox", viewBoxValue);
+
+        //debug background
+        Element backgroundRect = doc.createElementNS(SVGDOMImplementation.SVG_NAMESPACE_URI, "rect");
+        backgroundRect.setAttributeNS(null, "x", String.valueOf(env.getMinX() -marginX));
+        backgroundRect.setAttributeNS(null, "y", String.valueOf(env.getMinY() -marginY));
+        backgroundRect.setAttributeNS(null, "width", "100%");
+        backgroundRect.setAttributeNS(null, "height", "100%");
+        backgroundRect.setAttributeNS(null,"fill", "yellow");
+        doc.getDocumentElement().appendChild(backgroundRect);
+
+        return doc;
+    }
+
+    private SVGDocument fillSvgDocument(SVGDocument doc, OctiStringAlignment alignment) {
+        for (OctiSegmentAlignment sa : alignment) {
+            logger.trace(sa.getOrientation() + ", " + sa.getOperation());
         }
         Pair<String, String> svgAlignmentStrings = parse(alignment);
 
-        Element animation = createAnimationElement(doc, svgAlignmentStrings.first(), svgAlignmentStrings.second(), "red");
-        doc.getDocumentElement().appendChild(animation);
+        setViewBox(doc,alignment);
 
-        Element polylineSrc = createPolyLineElement(doc, alignment.getSourceString(), "blue");
-        Element polylineTar = createPolyLineElement(doc, alignment.getTargetString(), "green");
 
-        doc.getDocumentElement().appendChild(polylineSrc);
-        doc.getDocumentElement().appendChild(polylineTar);
+        if (config.showAnimation) {
+            Element animation = createAnimationElement(doc, svgAlignmentStrings.first(), svgAlignmentStrings.second(), config.animationColor);
+            doc.getDocumentElement().appendChild(animation);
+        }
 
+        if (config.showSource) {
+            Element polylineSrc = createPolyLineElement(doc, alignment.getSourceString(), config.sourceColor);
+            doc.getDocumentElement().appendChild(polylineSrc);
+        }
+        if (config.showTarget) {
+            Element polylineTar = createPolyLineElement(doc, alignment.getTargetString(), config.targetColor);
+            doc.getDocumentElement().appendChild(polylineTar);
+        }
         return doc;
     }
 
     /**
      * Creates an svg polyline-Element
+     *
      * @param creationDoc the document used to create elements
-     * @param from the linestring from which the "points"-attribute of the Polyline-Element is derived
-     * @param to the linestring from which the "points"-attribute of the Polyline-Element is derived
-     * @param color      the color in which the linestring is to be painted
+     * @param from        the linestring from which the "points"-attribute of the Polyline-Element is derived
+     * @param to          the linestring from which the "points"-attribute of the Polyline-Element is derived
+     * @param color       the color in which the linestring is to be painted
      * @return the newly created polyline-Element
      */
     public Element createAnimationElement(SVGDocument creationDoc, String from, String to, String color) {
@@ -113,8 +170,8 @@ public class SvgGenerator {
 
         String markerId = color + "Circle";
         String startMarkerId = color + "StartCircle";
-        Element markerElement = createMarkers(creationDoc,markerId, color);
-        Element startMarkerElement = createMarkers(creationDoc, startMarkerId, "green");
+        Element markerElement = createMarkers(creationDoc, markerId, color);
+        Element startMarkerElement = createMarkers(creationDoc, startMarkerId, config.startPointColor);
         polyGroup.appendChild(markerElement);
         polyGroup.appendChild(startMarkerElement);
         polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + markerId + ")");
@@ -128,8 +185,8 @@ public class SvgGenerator {
      * Creates an svg Polyline-Element
      *
      * @param creationDoc the document used to create elements
-     * @param lineString the linestring from which the "points"-attribute of the Polyline-Element is derived
-     * @param color      the color in which the linestring is to be painted
+     * @param lineString  the linestring from which the "points"-attribute of the Polyline-Element is derived
+     * @param color       the color in which the linestring is to be painted
      * @return the newly created polyline-Element
      */
     public Element createPolyLineElement(SVGDocument creationDoc, OctiLineString lineString, String color) {
@@ -162,8 +219,8 @@ public class SvgGenerator {
      * Creates an svg marker-Element
      *
      * @param creationDoc the document used to create elements
-     * @param id    the id with which the marker element can be referenced
-     * @param color the color in which the markers are to be painted
+     * @param id          the id with which the marker element can be referenced
+     * @param color       the color in which the markers are to be painted
      * @return the created marker-Element
      */
     public Element createMarkers(SVGDocument creationDoc, String id, String color) {
