@@ -13,15 +13,16 @@ import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Element;
 import org.w3c.dom.svg.SVGDocument;
 
+import java.awt.*;
 import java.util.Iterator;
 
 
 /**
- * todo envelope function to draw surrounding frame with appropriate sizes
+ * todo maybe make Config a Builder-Pattern
  */
 public class SvgGenerator {
 
-    public class Config {
+    public static class Config {
 
         public Config(boolean showSource, boolean showTarget, boolean showAnimation,
                       String sourceColor, String targetColor, String animationColor, String startPointColor) {
@@ -46,6 +47,12 @@ public class SvgGenerator {
 
     private Config config = new Config(true, true, true, "blue", "green", "red", "purple");
     private static final Logger logger = LogManager.getLogger();
+
+    public SvgGenerator(){ }
+
+    public SvgGenerator(Config config){
+        this.config = config;
+    }
 
     private Pair<String, String> parse(OctiStringAlignment alignments) {
         StringBuilder srcBuilder = new StringBuilder();
@@ -91,28 +98,63 @@ public class SvgGenerator {
         return doc;
     }
 
+    /** returns the dimensions of the doc
+     * maybe move to more appropriate place
+     *      currently searching for:
+     *      <l>
+     *          <li>viewBox</li>
+     *      </l>
+     *
+     * @param doc
+     * @return
+     */
+    public static Dimension retrieveDimension(SVGDocument doc){
+        int width = Integer.parseInt(doc.getDocumentElement().getAttributeNodeNS(null,"viewBox").getValue().split(" ")[2]);
+        int height = Integer.parseInt(doc.getDocumentElement().getAttributeNodeNS(null,"viewBox").getValue().split(" ")[3]);
+        logger.debug("width "+ width + " height " + height);
+        return new java.awt.Dimension(width,height);
+
+    }
+
+    /** mostly debuggin purposes
+     * no background is set if color == null
+     *
+     * @param doc the doc to have its background set
+     * @param color the background color
+     * @param startX describes to top-left corner's x-Coordinate
+     * @param startY describes to top-left corner's y-Coordinate
+     * @return the modified document
+     */
+    private SVGDocument setBackgroundColor(SVGDocument doc, String color, double startX, double startY){
+        Element backgroundRect = doc.createElementNS(SVGDOMImplementation.SVG_NAMESPACE_URI, "rect");
+        backgroundRect.setAttributeNS(null, "x", String.valueOf(startX));
+        backgroundRect.setAttributeNS(null, "y", String.valueOf(startY));
+        backgroundRect.setAttributeNS(null, "width", "100%");
+        backgroundRect.setAttributeNS(null, "height", "100%");
+        if(color != null) backgroundRect.setAttributeNS(null,"fill", "yellow");
+        doc.getDocumentElement().appendChild(backgroundRect);
+        return doc;
+    }
 
     private SVGDocument setViewBox(SVGDocument doc, OctiStringAlignment alignment) {
         Element svgRoot = doc.getDocumentElement();
         Envelope env = alignment.getEnvelope();
-        double marginX = env.getHeight() * 0.1;
-        double marginY = env.getWidth() * 0.1;
-        String viewBoxValue = "" +
-                (env.getMinX() - marginX) + " " +
-                (env.getMinY() - marginY) + " " +
-                (env.getWidth() * 1.2) + " " +
-                (env.getHeight() * 1.2);
+        double margin = 0.1;
+        double marginX = env.getWidth() * margin;
+        double marginY = env.getHeight() * margin;
+
+        //make it int
+        int viewBoxStartX = Double.valueOf(Math.floor(env.getMinX() - marginX)).intValue();
+        int viewBoxStartY = Double.valueOf(Math.floor(env.getMinY() - marginY)).intValue();
+        int viewBoxWidth = Double.valueOf(env.getWidth() + 2 * marginX).intValue();
+        int viewBoxHeight = Double.valueOf(env.getHeight() + 2 * marginY).intValue();
+
+        String viewBoxValue = "" + viewBoxStartX + " " + viewBoxStartY + " " +
+                                    viewBoxWidth + " " + viewBoxHeight;
         logger.warn("viewBox" + viewBoxValue);
         svgRoot.setAttributeNS(null, "viewBox", viewBoxValue);
 
-        //debug background
-        Element backgroundRect = doc.createElementNS(SVGDOMImplementation.SVG_NAMESPACE_URI, "rect");
-        backgroundRect.setAttributeNS(null, "x", String.valueOf(env.getMinX() -marginX));
-        backgroundRect.setAttributeNS(null, "y", String.valueOf(env.getMinY() -marginY));
-        backgroundRect.setAttributeNS(null, "width", "100%");
-        backgroundRect.setAttributeNS(null, "height", "100%");
-        backgroundRect.setAttributeNS(null,"fill", "yellow");
-        doc.getDocumentElement().appendChild(backgroundRect);
+        setBackgroundColor(doc,"yellow", viewBoxStartX, viewBoxStartY);
 
         return doc;
     }

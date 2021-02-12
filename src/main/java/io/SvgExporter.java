@@ -5,29 +5,27 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.Iterator;
 import java.util.List;
-
-import javax.swing.*;
+import org.twak.utils.Pair;
 
 import jtsadaptions.OctiGeometryFactory;
-import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
 import morph.NoMinimumOperationException;
 import morph.OctiLineMatcher;
-import morph.OctiSegmentAlignment;
 import morph.OctiStringAlignment;
-import org.apache.batik.swing.JSVGCanvas;
-import org.apache.batik.swing.svg.*;
 
-import org.apache.batik.anim.dom.SVGDOMImplementation;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.locationtech.jts.geom.Coordinate;
-import org.twak.utils.Pair;
-import org.w3c.dom.DOMImplementation;
-import org.w3c.dom.Element;
+import javax.swing.*;
+import org.apache.batik.swing.JSVGCanvas;
+import org.apache.batik.swing.gvt.GVTTreeRendererEvent;
+import org.apache.batik.swing.gvt.GVTTreeRendererListener;
+import org.apache.batik.swing.svg.*;
 import org.w3c.dom.svg.SVGDocument;
 
-import static morph.OctiLineMatcher.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+
+
+
 
 /**
  * todo make factory and have config object
@@ -44,12 +42,12 @@ public class SvgExporter {
 
     protected JSVGCanvas svgCanvas = new JSVGCanvas();
 
-    private int preferredHeight = 500;
-    private int preferredWidth = 600;
+    private int preferredHeight = 562;
+    private int preferredWidth = 1000;
 
     //the svg
     private SVGDocument doc;
-    private SvgGenerator generator = new SvgGenerator();
+    private SvgGenerator generator = new SvgGenerator(new SvgGenerator.Config(true, true, true, "green", "blue", "orange", "orange"));
     private String svgDirectory = "./src/main/resources/";
     private String defaultSvg = "squareRightBoomerang.svg";
 
@@ -60,13 +58,15 @@ public class SvgExporter {
             }
         });
         refreshCanvas(doc);
-        frame.getContentPane().add(this.createPanel());
-        frame.setSize(preferredWidth, preferredHeight); //frame.pack();
+        frame.setContentPane(this.createPanel());
+
+        frame.pack();
         frame.setVisible(true);
     }
 
     /**
      * temporary helper method to extract, sets src and tar fields
+     *
      * @return
      */
     private OctiStringAlignment getMatchPath(String svgPath) {
@@ -103,8 +103,10 @@ public class SvgExporter {
         exporter.show();
     }
 
-    /** Deprecated
+    /**
+     * Deprecated
      * Index based parsed
+     *
      * @param match
      * @return
      */
@@ -128,23 +130,45 @@ public class SvgExporter {
         return svgStrings;
     }
 
-    private void refreshCanvas(SVGDocument d){
+    private void refreshCanvas(SVGDocument d) { //todo clean up
         svgCanvas.setDocument(d);
-        frame.pack();
+        svgCanvas.setSVGDocument(d);
 
     }
 
+
     public JComponent createPanel() {
-        final JPanel panel = new JPanel(new BorderLayout());
+        GridBagLayout gbl = new GridBagLayout();
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        final JPanel panel = new JPanel(gbl);
+
         final JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         JButton button = addSVGLoadFunctionality(panel, "Load svg");
 
         actionsPanel.add(button);
         actionsPanel.add(statusLabel);
+
         statusLabel.setText("status text here");
-        panel.add(actionsPanel, BorderLayout.NORTH);
-        panel.add(svgCanvas, BorderLayout.CENTER);
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(actionsPanel, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.fill = GridBagConstraints.BOTH;
+        //debug colors
+        svgCanvas.setBackground(Color.black);
+        panel.setBackground(Color.MAGENTA);
+        actionsPanel.setBackground(Color.BLUE);
+
+        panel.add(svgCanvas, gbc);
         return panel;
     }
 
@@ -175,7 +199,7 @@ public class SvgExporter {
                         e.printStackTrace();
                     }
                     svgCanvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
-                    OctiStringAlignment newAlignment =getMatchPath(f.toURI().toString());
+                    OctiStringAlignment newAlignment = getMatchPath(f.toURI().toString());
                     doc = generator.generateSVG(newAlignment);
 
                     refreshCanvas(doc);
@@ -184,6 +208,35 @@ public class SvgExporter {
             }
         });
 
+        svgCanvas.addGVTTreeRendererListener(new GVTTreeRendererListener() {
+            @Override
+            public void gvtRenderingPrepare(GVTTreeRendererEvent e) {
+                //nothing
+            }
+
+            @Override
+            public void gvtRenderingStarted(GVTTreeRendererEvent e) {
+                //nothing
+            }
+
+            @Override
+            public void gvtRenderingCompleted(GVTTreeRendererEvent e) {
+                logger.trace("rendering and loading complete");
+
+                svgCanvas.setPreferredSize(SvgGenerator.retrieveDimension(doc));
+                frame.pack();
+            }
+
+            @Override
+            public void gvtRenderingCancelled(GVTTreeRendererEvent e) {
+                //nothing
+            }
+
+            @Override
+            public void gvtRenderingFailed(GVTTreeRendererEvent e) {
+                //nothing
+            }
+        });
         // Set the JSVGCanvas listeners.
         svgCanvas.addSVGDocumentLoaderListener(new SVGDocumentLoaderAdapter() {
             public void documentLoadingStarted(SVGDocumentLoaderEvent e) {
