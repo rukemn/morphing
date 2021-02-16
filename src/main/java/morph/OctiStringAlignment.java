@@ -1,6 +1,7 @@
 package morph;
 
 import jtsadaptions.OctiLineString;
+import org.locationtech.jts.geom.Envelope;
 import org.twak.utils.Pair;
 
 import java.util.Iterator;
@@ -13,6 +14,13 @@ public class OctiStringAlignment implements Iterable<OctiSegmentAlignment> {
     OctiLineString sourceString;
     OctiLineString targetString;
     List<OctiSegmentAlignment> alignment = new LinkedList<>();
+
+    public Envelope getEnvelope(){
+        Envelope sourceEnvelope = sourceString.getEnvelopeInternal();
+        Envelope targetEnvelope = targetString.getEnvelopeInternal();
+        sourceEnvelope.expandToInclude(targetEnvelope);
+        return new Envelope(sourceEnvelope);
+    }
 
     public OctiStringAlignment(OctiLineString source, OctiLineString target, List<Pair<Pair<Integer, Integer>, OctiSegmentAlignment.Operation>> indexAlignments) {
         this.sourceString = source;
