@@ -13,8 +13,13 @@ public class OctiLineString extends LineString implements Octilinear {
 
     public OctiLineString(CoordinateSequence points, GeometryFactory factory) {
         super(points, factory);
-
         octiString = createOctiSegments(this.points);
+    }
+
+    protected Geometry reverseInternal(){
+        CoordinateSequence seq = points.copy();
+        CoordinateSequences.reverse(seq);
+        return OctiGeometryFactory.OCTI_FACTORY.createOctiLineString(seq);
     }
 
     public OctiLineString(LineString ls, GeometryFactory factory) {
@@ -44,7 +49,7 @@ public class OctiLineString extends LineString implements Octilinear {
 
     public OctiLineString makeNthPointTheFirst(int index) {
 
-        if (index == 0) return OctiGeometryFactory.OCTI_FACTORY.createOctiLineString(this.points);//(OctiLineString) this.copy();
+        if (index == 0) return OctiGeometryFactory.OCTI_FACTORY.createOctiLineString(this.points.copy());//(OctiLineString) this.copy();
 
         Coordinate[] coords = this.points.toCoordinateArray();
         Coordinate[] returnCoords = new Coordinate[this.getNumPoints()];

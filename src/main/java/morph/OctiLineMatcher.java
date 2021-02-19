@@ -6,11 +6,11 @@ import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.locationtech.jts.algorithm.Orientation;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineString;
 import org.twak.utils.Pair;
 import scoringStrategies.BaseMatchStrategy;
-import scoringStrategies.TargetVisibleStrategy;
 import scoringStrategies.VisibilityMatchStrategy;
 
 import java.io.IOException;
@@ -32,6 +32,9 @@ public class OctiLineMatcher {
 
     private final OctiLineString source;
     private final OctiLineString target;
+
+    //whether source and target should be swapped after invoking the constructor
+    public boolean sourceAndTargetSwapped = false;
 
     private double[][][] scores;
 
@@ -69,12 +72,29 @@ public class OctiLineMatcher {
      * @param targetLineString the target String
      */
     public OctiLineMatcher(OctiLineString sourceLineString, OctiLineString targetLineString) {
+        if(sourceAndTargetSwapped){
+            OctiLineString tempSource = sourceLineString;
+            sourceLineString = targetLineString;
+            targetLineString = tempSource;
+            logger.trace("swapped source and target");
+        }
+        logger.trace("src is ccw: " + Orientation.isCCW(sourceLineString.getCoordinateSequence()) + " --> " +
+            (Orientation.isCCW(sourceLineString.getCoordinateSequence()) ? "reversing" : "leaving it as is") );
+        logger.trace("trg is ccw: " + Orientation.isCCW(targetLineString.getCoordinateSequence())  + " --> " +
+                (Orientation.isCCW(targetLineString.getCoordinateSequence()) ? "reversing" : "leaving it as is") );
+
+
+
+        if(Orientation.isCCW(sourceLineString.getCoordinateSequence())) sourceLineString = (OctiLineString) sourceLineString.reverse();
+        if(Orientation.isCCW(targetLineString.getCoordinateSequence())) targetLineString = (OctiLineString) targetLineString.reverse();
+
         int[] starts = determineBestStartingPoint(sourceLineString, targetLineString);
 
         source = sourceLineString.makeNthPointTheFirst(starts[0]);
         target = targetLineString.makeNthPointTheFirst(starts[1]);
-        //must be after roation
-        OctiLineSegment.setStrategy(new TargetVisibleStrategy(new BaseMatchStrategy()), source, target);
+
+        //must be after bringing the strings into start configuration
+        OctiLineSegment.setStrategy(new BaseMatchStrategy(), source, target);
 
         initBoard();
         iterateBoard();
@@ -240,7 +260,7 @@ public class OctiLineMatcher {
     }
     /**
      * Inits the starting point (0 0) , aswell as the 0-th row and the 0-th column.
-     * These only consist insertion chains (i.e. columns) and  deletion chains ( i.e. rows)
+     * These only consist of insertion chains (i.e. columns) and  deletion chains (i.e. rows)
      */
     private void initBoard() {
         logger.info("init Board");
