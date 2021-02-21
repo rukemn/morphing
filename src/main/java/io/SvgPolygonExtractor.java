@@ -23,7 +23,7 @@ public class SvgPolygonExtractor {
     private static Logger logger = LogManager.getLogger();
     enum action {STARTPOINT, LINETO_SECOND, LINETO_THIRD, NEXTLINE_OR_END}
 
-    private List<Polygon> polygons = new ArrayList<>();
+    private final List<Polygon> polygons = new ArrayList<>();
 
     public static void main(String[] args) {
         SvgPolygonExtractor x = new SvgPolygonExtractor();
@@ -36,6 +36,9 @@ public class SvgPolygonExtractor {
     }
 
     public void parseSvg(String uri) throws IOException {
+        // clearing case of reuse
+        polygons.clear();
+
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         NodeList paths = null;
         try {
