@@ -23,6 +23,11 @@ public class VisibilityMatchStrategy extends StrategyDectorator {
         super(underlyingStrategy);
     }
 
+    private void logVisibility(){
+        for (Map.Entry<Pair<Coordinate, Coordinate>, Boolean> e : visibilityMap.entrySet()) {
+            logger.trace(e.getKey().first() + " can see " + e.getKey().second() + " : " + e.getValue().toString());
+        }
+    }
     /**
      * @param srcPoint
      * @param targetPoint
