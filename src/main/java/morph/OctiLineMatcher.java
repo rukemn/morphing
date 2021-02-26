@@ -6,9 +6,11 @@ import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.locationtech.jts.algorithm.Orientation;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineString;
 import org.twak.utils.Pair;
+import org.twak.utils.Parallel;
 import scoringStrategies.BaseMatchStrategy;
 import scoringStrategies.VisibilityMatchStrategy;
 
@@ -31,6 +33,9 @@ public class OctiLineMatcher {
 
     private final OctiLineString source;
     private final OctiLineString target;
+
+    //whether source and target should be swapped after invoking the constructor
+    public boolean sourceAndTargetSwapped = false;
 
     private double[][][] scores;
 
@@ -62,29 +67,78 @@ public class OctiLineMatcher {
         }
     }
 
+    /** Brings the OctiLineStrings in a configuration, such that the algorithm can work on it.
+     *
+     * Assumptions:
+     * <ul>
+     *     <li>OctiLineStrings are closed</li>
+     *     <li>OctiLineStrings do not self-intersect</li>
+     * </ul>
+     *
+     * Config guaranties:
+     *
+     *  <ul>
+     *      <li>if {@link OctiLineMatcher#sourceAndTargetSwapped} is <i>true</i> the strings will be swapped before returning</li>
+     *      <li>OctiLineStrings are in clockwise orientation</li>
+     *      <li>OctiLineStrings are rotated such that the starting points are the points returned by {@link OctiLineMatcher#determineBestStartingPoint}</li>
+     *  </ul>
+     *
+     * @param src
+     * @param tar
+     * @returns the pair of configured {@link OctiLineString}s,
+     * {@link Pair#first()} being the source,
+     * {@link Pair#second()} being the target,
+     */
+    private Pair<OctiLineString, OctiLineString> createBaseConfig(OctiLineString src, OctiLineString tar){
+
+        //checks for self-intersect, strings may be non-closed though
+        if(! src.isSimple() ) throw new IllegalArgumentException("src input not simple");
+        if(! tar.isSimple() ) throw new IllegalArgumentException("tar input not simple");
+
+        if(sourceAndTargetSwapped){
+            OctiLineString tempSource = src;
+            src = tar;
+            tar = tempSource;
+            logger.trace("swapped source and target");
+        }
+
+        if(src.isClosed() && tar.isClosed()){
+            if(Orientation.isCCW(src.getCoordinateSequence())){
+                logger.trace("source is oriented in counter-clockwise order --> making it clockwise");
+                src = (OctiLineString) src.reverse();
+            }
+            if(Orientation.isCCW(tar.getCoordinateSequence())){
+                logger.trace("target is oriented in counter-clockwise order --> making it clockwise");
+                tar = (OctiLineString) tar.reverse();
+            }
+        }
+
+        //considers the case of non-closednes
+        int[] startpoints = determineBestStartingPoint(src,tar);
+        src = src.makeNthPointTheFirst(startpoints[0]);
+        tar = tar.makeNthPointTheFirst(startpoints[1]);
+
+        return new Pair<>(src,tar);
+    }
+
     /**
      * Creates a new instance with the specified OctiLineStrings
      * @param sourceLineString the source String
      * @param targetLineString the target String
      */
     public OctiLineMatcher(OctiLineString sourceLineString, OctiLineString targetLineString) {
-        int[] starts = determineBestStartingPoint(sourceLineString, targetLineString);
+        Pair<OctiLineString,OctiLineString> baseConfig = createBaseConfig(sourceLineString,targetLineString);
+        source = baseConfig.first();
+        target = baseConfig.second();
 
-        source = sourceLineString.makeNthPointTheFirst(starts[0]);
-        target = targetLineString.makeNthPointTheFirst(starts[1]);
-        //must be after roation
-        OctiLineSegment.setStrategy(new VisibilityMatchStrategy(new BaseMatchStrategy()), source, target);
+        //must be after bringing the strings into start configuration
+        OctiLineSegment.setStrategy(new BaseMatchStrategy(), source, target);
 
         initBoard();
         iterateBoard();
 
-        //todo debug code
-        Map<Pair<Coordinate, Coordinate>, Boolean> vis = ((VisibilityMatchStrategy) OctiLineSegment.strategy).visibilityMap;
-
-        for (Map.Entry<Pair<Coordinate, Coordinate>, Boolean> e : vis.entrySet()) {
-            logger.trace(e.getKey().first() + " can see " + e.getKey().second() + " : " + e.getValue().toString());
-        }
     }
+
 
     /**
      * Determines the starting Points of the alignment by selecting the two points (one from each LineString) with minimum distance to each other
@@ -95,9 +149,13 @@ public class OctiLineMatcher {
      *          second element corresponding to the index of second
      */
     private int[] determineBestStartingPoint(LineString first, LineString second) {
+        if(!first.isClosed() || !second.isClosed()){
+            logger.warn("at least one linestring is not closed, returning starting points");
+            return new int[]{0,0};
+        }
         logger.info("determining starting point by minimal distance");
+        int[] minIndices = {0, 0};
         double minDistance = first.getCoordinateN(0).distance(second.getCoordinateN(0));
-        int[] minIndicies = {0, 0};
 
         for (int i = 0; i < first.getNumPoints(); i++) {
             Coordinate from = first.getCoordinateN(i);
@@ -105,13 +163,13 @@ public class OctiLineMatcher {
                 Coordinate to = second.getCoordinateN(j);
                 if (from.distance(to) < minDistance) {
                     minDistance = from.distance(to);
-                    minIndicies[0] = i;
-                    minIndicies[1] = j;
+                    minIndices[0] = i;
+                    minIndices[1] = j;
                 }
             }
         }
-        logger.debug("Min distance are points are: " + minIndicies[0] + " (source) and " + minIndicies[1] + " (target)");
-        return minIndicies;
+        logger.debug("Min distance are points are: " + minIndices[0] + " (source) and " + minIndices[1] + " (target)");
+        return minIndices;
     }
 
     public OctiLineString getSource() {
@@ -238,7 +296,7 @@ public class OctiLineMatcher {
     }
     /**
      * Inits the starting point (0 0) , aswell as the 0-th row and the 0-th column.
-     * These only consist insertion chains (i.e. columns) and  deletion chains ( i.e. rows)
+     * These only consist of insertion chains (i.e. columns) and  deletion chains (i.e. rows)
      */
     private void initBoard() {
         logger.info("init Board");

@@ -4,29 +4,26 @@ import jtsadaptions.OctiGeometryFactory;
 import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
 import morph.OctiLineMatcher;
-import scoringStrategies.OctiMatchStrategy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.locationtech.jts.geom.*;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.Point;
 import org.twak.utils.Pair;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class VisibilityMatchStrategy extends StrategyDectorator {
+public class TargetVisibleStrategy extends StrategyDectorator{
     private OctiLineString source;
     private OctiLineString target;
     private static Logger logger = LogManager.getLogger();
     public final Map<Pair<Coordinate,Coordinate>, Boolean> visibilityMap = new HashMap<>();
 
-    public VisibilityMatchStrategy(OctiMatchStrategy underlyingStrategy) {
-        super(underlyingStrategy);
-    }
 
-    private void logVisibility(){
-        for (Map.Entry<Pair<Coordinate, Coordinate>, Boolean> e : visibilityMap.entrySet()) {
-            logger.trace(e.getKey().first() + " can see " + e.getKey().second() + " : " + e.getValue().toString());
-        }
+    public TargetVisibleStrategy(OctiMatchStrategy underlyingStrategy) {
+        super(underlyingStrategy);
     }
     /**
      * @param srcPoint
@@ -38,12 +35,9 @@ public class VisibilityMatchStrategy extends StrategyDectorator {
         if(preComputed != null) return preComputed;
 
         LineString connectingLine = OctiGeometryFactory.OCTI_FACTORY.createLineString(new Coordinate[]{srcPoint,targetPoint});
-        Geometry sourceIntersection = source.intersection(connectingLine);
         Geometry targetIntersection = target.intersection(connectingLine);
-        logger.debug("source intersection is a " + sourceIntersection.getGeometryType());
 
-        if( (sourceIntersection instanceof Point) && ((Point)sourceIntersection).getCoordinate().equals(srcPoint) &&
-            (targetIntersection instanceof Point) && ((Point)targetIntersection).getCoordinate().equals(targetPoint))
+        if ((targetIntersection instanceof Point) && ((Point)targetIntersection).getCoordinate().equals(targetPoint))
         {
             logger.debug(srcPoint + "can see " + targetPoint);
             visibilityMap.put(new Pair<>(srcPoint,targetPoint),true);

@@ -54,6 +54,31 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitToolBoxStore">
+    <option name="recentBranches">
+      <RecentBranches>
+        <option name="branchesForRepo">
+          <list>
+            <RecentBranchesForRepo>
+              <option name="branches">
+                <list>
+                  <RecentBranch>
+                    <option name="branchName" value="SvgExporting" />
+                    <option name="lastUsedInstant" value="1614353919" />
+                  </RecentBranch>
+                  <RecentBranch>
+                    <option name="branchName" value="alignmentStrategy" />
+                    <option name="lastUsedInstant" value="1614353918" />
+                  </RecentBranch>
+                </list>
+              </option>
+              <option name="repositoryRootUrl" value="file://$PROJECT_DIR$" />
+            </RecentBranchesForRepo>
+          </list>
+        </option>
+      </RecentBranches>
+    </option>
+  </component>
   <component name="ProjectId" id="1ntJuIpVPMrWqB3wvyUWVjLWZ6v" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -68,7 +93,7 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../ttm/morphing/build.gradle" />
     <property name="settings.editor.selected.configurable" value="vcs.Git" />
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Gradle.svgGui: arrow-&gt; arrow">
     <configuration name="morphing [runSvgGUI]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
@@ -90,6 +115,17 @@
       <DebugAllEnabled>false</DebugAllEnabled>
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Gradle.svgGui: arrow-&gt; arrow" />
+      <item itemvalue="Gradle.svgGui: bone-&gt; key" />
+      <item itemvalue="Gradle.svgGui: octagon-&gt; square" />
+      <item itemvalue="Gradle.svgGui: square-&gt; boomerang" />
+      <item itemvalue="Gradle.svgGui: square-&gt; octagon" />
+      <item itemvalue="Gradle.svgGui: square-&gt; rightBoomerang" />
+      <item itemvalue="Gradle.svgGui: square-&gt; square" />
+      <item itemvalue="Gradle.svgGui: square-&gt; triangle" />
+      <item itemvalue="Gradle.morphing [runSvgGUI]" />
+    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Gradle.morphing [runSvgGUI]" />
@@ -114,5 +150,8 @@
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
 </project>

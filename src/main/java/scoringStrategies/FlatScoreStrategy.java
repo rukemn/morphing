@@ -4,31 +4,33 @@ import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
 import org.locationtech.jts.geom.Coordinate;
 
-public abstract class StrategyDectorator implements OctiMatchStrategy{
+/**
+ * only considers whether or not its a match, in contrast to taking edge length or distance in consideration
+ */
+public class FlatScoreStrategy extends StrategyDectorator{
 
-    protected OctiMatchStrategy underlyingStrategy;
-
-    public StrategyDectorator(OctiMatchStrategy underlyingStrategy){
-        this.underlyingStrategy = underlyingStrategy;
+    public FlatScoreStrategy(OctiMatchStrategy underlyingStrategy) {
+        super(underlyingStrategy);
     }
 
     @Override
     public void initStrategy(OctiLineString sourceString, OctiLineString targetString) {
-        underlyingStrategy.initStrategy(sourceString,targetString);
+        //maximum diagonal elements/ matches total score >= 0
+        //maxScore = Math.min(sourceString.size() , targetString.size());
     }
 
     @Override
     public double match(OctiLineSegment sourceSegment, OctiLineSegment targetSegment) {
-        return underlyingStrategy.match(sourceSegment,targetSegment);
+        return -1;
     }
 
     @Override
     public double deleteOnto(OctiLineSegment segmentToBeDeleted, Coordinate point) {
-        return underlyingStrategy.deleteOnto(segmentToBeDeleted, point);
+        return 1;
     }
 
     @Override
     public double createFrom(Coordinate creationPoint, OctiLineSegment segmentToBeCreated) {
-        return underlyingStrategy.createFrom(creationPoint, segmentToBeCreated);
+        return 1;
     }
 }
