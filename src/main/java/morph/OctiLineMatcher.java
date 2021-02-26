@@ -10,7 +10,6 @@ import org.locationtech.jts.algorithm.Orientation;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineString;
 import org.twak.utils.Pair;
-import org.twak.utils.Parallel;
 import scoringStrategies.BaseMatchStrategy;
 import scoringStrategies.VisibilityMatchStrategy;
 
@@ -54,8 +53,8 @@ public class OctiLineMatcher {
         }
         OctiGeometryFactory ogf = new OctiGeometryFactory();
 
-        OctiLineString src = ogf.createOctiLineString(importer.getNthPolygon(0).getExteriorRing().getCoordinateSequence());
-        OctiLineString tar = ogf.createOctiLineString(importer.getNthPolygon(1).getExteriorRing().getCoordinateSequence());
+        OctiLineString src = importer.getNthOctiLineString(0); //ogf.createOctiLineString(importer.getNthOctiLineString(0).getExteriorRing().getCoordinateSequence());
+        OctiLineString tar = importer.getNthOctiLineString(1); //ogf.createOctiLineString(importer.getNthOctiLineString(1).getExteriorRing().getCoordinateSequence());
 
         OctiLineSegment.setStrategy(new VisibilityMatchStrategy(new BaseMatchStrategy()), src, tar);
         OctiLineMatcher matcher = new OctiLineMatcher(src, tar);

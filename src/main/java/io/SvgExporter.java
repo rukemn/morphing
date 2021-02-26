@@ -44,7 +44,7 @@ public class SvgExporter {
 
     //the svg
     private SVGDocument doc;
-    private final SvgGenerator generator = new SvgGenerator(new SvgGenerator.Config(false, false, true, "green", "blue", "orange", "orange"));
+    private final SvgGenerator generator = new SvgGenerator(new SvgGenerator.Config(true, true, true, "green", "blue", "orange", "orange"));
     private final SvgPolygonExtractor extractor = new SvgPolygonExtractor();
     private final String svgDirectory = "./src/main/resources/";
     private final String defaultSvg = "squareRightBoomerang.svg";
@@ -87,8 +87,8 @@ public class SvgExporter {
         }
         OctiGeometryFactory ogf = new OctiGeometryFactory();
 
-        OctiLineString olsSource = ogf.createOctiLineString(extractor.getNthPolygon(0).getExteriorRing().getCoordinateSequence());
-        OctiLineString olsTarget = ogf.createOctiLineString(extractor.getNthPolygon(1).getExteriorRing().getCoordinateSequence());
+        OctiLineString olsSource = extractor.getNthOctiLineString(0); //ogf.createOctiLineString(extractor.getNthOctiLineString(0).getExteriorRing().getCoordinateSequence());
+        OctiLineString olsTarget =  extractor.getNthOctiLineString(1); //ogf.createOctiLineString(extractor.getNthOctiLineString(1).getExteriorRing().getCoordinateSequence());
 
         OctiLineMatcher matcher = new OctiLineMatcher(olsSource, olsTarget);
 
