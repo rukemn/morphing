@@ -2,6 +2,10 @@ plugins {
     id 'java'
     id 'idea'
 }
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
 
 group 'de.kemna'
 version '1.0-SNAPSHOT'
