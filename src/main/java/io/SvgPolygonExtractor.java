@@ -1,6 +1,7 @@
 package io;
 
 import jtsadaptions.OctiGeometryFactory;
+import jtsadaptions.OctiLineString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Coordinate;
@@ -23,7 +24,7 @@ public class SvgPolygonExtractor {
     private static Logger logger = LogManager.getLogger();
     enum action {STARTPOINT, LINETO_SECOND, LINETO_THIRD, NEXTLINE_OR_END}
 
-    private List<Polygon> polygons = new ArrayList<>();
+    private final List<OctiLineString> octiLineStrings = new ArrayList<>();
 
     public static void main(String[] args) {
         SvgPolygonExtractor x = new SvgPolygonExtractor();
@@ -32,10 +33,13 @@ public class SvgPolygonExtractor {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        logger.info("Extracted " + x.numberOfPolygons() + " polygons");
+        logger.info("Extracted " + x.numberOfParsedOctiLineStrings() + " polygons");
     }
 
     public void parseSvg(String uri) throws IOException {
+        // clearing case of reuse
+        octiLineStrings.clear();
+
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         NodeList paths = null;
         try {
@@ -57,7 +61,7 @@ public class SvgPolygonExtractor {
                 for (Coordinate c : points) logger.trace("path" + i +": Point " + c.toString());
 
                 Coordinate[] coords = points.toArray(Coordinate[]::new);
-                polygons.add(OctiGeometryFactory.OCTI_FACTORY.createPolygon(coords));
+                octiLineStrings.add(OctiGeometryFactory.OCTI_FACTORY.createOctiLineString(coords));
             }
 
         } catch(IOException io) {
@@ -68,11 +72,11 @@ public class SvgPolygonExtractor {
         }
     }
 
-    public int numberOfPolygons(){
-        return polygons.size();
+    public int numberOfParsedOctiLineStrings(){
+        return octiLineStrings.size();
     }
-    public Polygon getNthPolygon(int index){
-        return polygons.get(index);
+    public OctiLineString getNthOctiLineString(int index){
+        return octiLineStrings.get(index);
     }
 
     /**
