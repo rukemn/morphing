@@ -4,11 +4,11 @@ import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
 import org.locationtech.jts.geom.Coordinate;
 
-public abstract class StrategyDectorator implements OctiMatchStrategy{
+public abstract class StrategyDecorator implements OctiMatchStrategy{
 
     protected OctiMatchStrategy underlyingStrategy;
 
-    public StrategyDectorator(OctiMatchStrategy underlyingStrategy){
+    public StrategyDecorator(OctiMatchStrategy underlyingStrategy){
         this.underlyingStrategy = underlyingStrategy;
     }
 

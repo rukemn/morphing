@@ -1,6 +1,5 @@
-package morph;
+package jtsadaptions;
 
-import jtsadaptions.OctiLineSegment;
 import org.locationtech.jts.geom.TopologyException;
 
 public class LineSegmentNotOctilinear extends TopologyException {

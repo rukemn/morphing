@@ -4,7 +4,6 @@ import jtsadaptions.OctiGeometryFactory;
 import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
 import morph.OctiLineMatcher;
-import scoringStrategies.OctiMatchStrategy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.*;
@@ -13,7 +12,7 @@ import org.twak.utils.Pair;
 import java.util.HashMap;
 import java.util.Map;
 
-public class VisibilityMatchStrategy extends StrategyDectorator {
+public class VisibilityMatchStrategy extends StrategyDecorator {
     private OctiLineString source;
     private OctiLineString target;
     private static Logger logger = LogManager.getLogger();

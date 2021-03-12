@@ -15,7 +15,7 @@ import org.twak.utils.Pair;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TargetVisibleStrategy extends StrategyDectorator{
+public class TargetVisibleStrategy extends StrategyDecorator {
     private OctiLineString source;
     private OctiLineString target;
     private static Logger logger = LogManager.getLogger();

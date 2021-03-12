@@ -5,7 +5,6 @@ import scoringStrategies.OctiMatchStrategy;
 import scoringStrategies.VisibilityMatchStrategy;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineSegment;
-import morph.LineSegmentNotOctilinear;
 
 
 public class OctiLineSegment extends LineSegment implements Octilinear{

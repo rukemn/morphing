@@ -7,7 +7,7 @@ import org.locationtech.jts.geom.Coordinate;
 /**
  * only considers whether or not its a match, in contrast to taking edge length or distance in consideration
  */
-public class FlatScoreStrategy extends StrategyDectorator{
+public class FlatScoreStrategy extends StrategyDecorator {
 
     public FlatScoreStrategy(OctiMatchStrategy underlyingStrategy) {
         super(underlyingStrategy);

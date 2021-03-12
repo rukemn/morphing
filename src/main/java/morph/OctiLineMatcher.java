@@ -1,6 +1,8 @@
 package morph;
 
-import io.SvgPolygonExtractor;
+import io.FileParseException;
+import io.PolygonExtractor;
+import io.PolygonExtractorInterface;
 import jtsadaptions.OctiGeometryFactory;
 import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
@@ -8,12 +10,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.algorithm.Orientation;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
 import org.twak.utils.Pair;
 import scoringStrategies.BaseMatchStrategy;
 import scoringStrategies.VisibilityMatchStrategy;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class OctiLineMatcher {
@@ -45,19 +49,33 @@ public class OctiLineMatcher {
         }else{
             svgPath = "src/main/resources/squareTriangle.svg";
         }
-        SvgPolygonExtractor importer = new SvgPolygonExtractor();
+        PolygonExtractorInterface extractor = new PolygonExtractor();
         try {
-            importer.parseSvg(svgPath);
+            extractor.parseFile(Paths.get(svgPath).toUri());
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (FileParseException e){
+            e.printStackTrace();
+            logger.warn("couldnt parse file content");
         }
-        OctiGeometryFactory ogf = new OctiGeometryFactory();
 
-        OctiLineString src = importer.getNthOctiLineString(0); //ogf.createOctiLineString(importer.getNthOctiLineString(0).getExteriorRing().getCoordinateSequence());
-        OctiLineString tar = importer.getNthOctiLineString(1); //ogf.createOctiLineString(importer.getNthOctiLineString(1).getExteriorRing().getCoordinateSequence());
+        Geometry srcGeom = extractor.getNthGeometry(0); //ogf.createOctiLineString(importer.getNthOctiLineString(0).getExteriorRing().getCoordinateSequence());
+        Geometry tarGeom = extractor.getNthGeometry(1); //ogf.createOctiLineString(importer.getNthOctiLineString(1).getExteriorRing().getCoordinateSequence());
+
+        OctiLineString src, tar;
+        try{
+            src = OctiGeometryFactory.OCTI_FACTORY.convertToOctiLineString(srcGeom);
+            tar = OctiGeometryFactory.OCTI_FACTORY.convertToOctiLineString(tarGeom);
+
+        }catch (Exception e){
+            e.printStackTrace();
+            logger.warn("no valid Geometry to extract an OctiLineString from");
+            return;
+        }
 
         OctiLineSegment.setStrategy(new VisibilityMatchStrategy(new BaseMatchStrategy()), src, tar);
         OctiLineMatcher matcher = new OctiLineMatcher(src, tar);
+
         try {
             matcher.backtrack();
         } catch (NoMinimumOperationException e) {
@@ -137,7 +155,6 @@ public class OctiLineMatcher {
         iterateBoard();
 
     }
-
 
     /**
      * Determines the starting Points of the alignment by selecting the two points (one from each LineString) with minimum distance to each other
@@ -291,7 +308,7 @@ public class OctiLineMatcher {
             throw e;
         }
 
-        return new OctiStringAlignment(source,target,alignmentIndicies);
+        return new ConcreteOctiStringAlignment(source,target,alignmentIndicies);
     }
     /**
      * Inits the starting point (0 0) , aswell as the 0-th row and the 0-th column.
