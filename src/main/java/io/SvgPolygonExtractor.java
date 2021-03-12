@@ -5,7 +5,7 @@ import jtsadaptions.OctiLineString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.Geometry;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -15,11 +15,13 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.*;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 //todo interface this to allow for more Extractors which can be plugged in
-public class SvgPolygonExtractor {
+public class SvgPolygonExtractor implements PolygonExtractorInterface{
 
     private static Logger logger = LogManager.getLogger();
     enum action {STARTPOINT, LINETO_SECOND, LINETO_THIRD, NEXTLINE_OR_END}
@@ -29,14 +31,16 @@ public class SvgPolygonExtractor {
     public static void main(String[] args) {
         SvgPolygonExtractor x = new SvgPolygonExtractor();
         try {
-            x.parseSvg("src/main/resources/SquareSquare");
+            x.parseFile(Paths.get("src/main/resources/SquareSquare").toUri());
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (FileParseException e){
+            e.printStackTrace();
         }
-        logger.info("Extracted " + x.numberOfParsedOctiLineStrings() + " polygons");
+        logger.info("Extracted " + x.numberOfParsedGeometries());
     }
 
-    public void parseSvg(String uri) throws IOException {
+    public void parseFile(URI uri) throws IOException, FileParseException {
         // clearing case of reuse
         octiLineStrings.clear();
 
@@ -44,7 +48,7 @@ public class SvgPolygonExtractor {
         NodeList paths = null;
         try {
             DocumentBuilder docBuilder = factory.newDocumentBuilder();
-            Document document = docBuilder.parse(uri);
+            Document document = docBuilder.parse(uri.toString());
 
             String xpathExpression = "//path/@d";
 
@@ -69,14 +73,22 @@ public class SvgPolygonExtractor {
             throw io;
         }catch(ParserConfigurationException | SAXException |  XPathExpressionException parsing) {
             parsing.printStackTrace();
+            throw new FileParseException("something internal went wrong");
         }
     }
-
-    public int numberOfParsedOctiLineStrings(){
+    @Override
+    public int numberOfParsedGeometries(){
         return octiLineStrings.size();
     }
-    public OctiLineString getNthOctiLineString(int index){
+
+    @Override
+    public OctiLineString getNthGeometry(int index){
         return octiLineStrings.get(index);
+    }
+
+    @Override
+    public List<Geometry> getGeometryList() {
+        return new ArrayList<>(octiLineStrings);
     }
 
     /**
