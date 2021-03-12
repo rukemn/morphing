@@ -10,7 +10,7 @@ import org.locationtech.jts.geom.Coordinate;
  * needed: information on previous move
  * alternativly implement GapCosts in OctiLineMatcher
  */
-public class AffineGapStrategy extends StrategyDectorator{
+public class AffineGapStrategy extends StrategyDecorator {
 
     public AffineGapStrategy(OctiMatchStrategy underlyingStrategy){
         super(underlyingStrategy);
