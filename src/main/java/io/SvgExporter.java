@@ -284,6 +284,7 @@ public class SvgExporter {
                 statusLabel.setText("Document loading failed.");
             }
         });
+
         return button;
     }
 }
