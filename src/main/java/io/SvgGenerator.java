@@ -12,6 +12,8 @@ import org.twak.utils.Pair;
 
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
 import org.w3c.dom.svg.SVGDocument;
 
 import java.awt.Dimension;
@@ -25,7 +27,6 @@ import java.util.List;
 public class SvgGenerator {
 
     public static class Config {
-
         public Config(boolean showSource, boolean showTarget, boolean showAnimation,
                       String sourceColor, String targetColor, String animationColor, String startPointColor) {
 
@@ -37,7 +38,6 @@ public class SvgGenerator {
             this.animationColor = animationColor;
             this.startPointColor = startPointColor;
         }
-
         public boolean showSource;
         public boolean showTarget;
         public boolean showAnimation;
@@ -47,7 +47,7 @@ public class SvgGenerator {
         public String startPointColor;
     }
 
-    private Config config = new Config(false, false, true, "blue", "green", "red", "purple");
+    private Config config = new Config(false, false, true, "green", "green", "red", "purple");
     private static final Logger logger = LogManager.getLogger();
 
     public SvgGenerator(){ }
@@ -98,10 +98,9 @@ public class SvgGenerator {
 
     public SVGDocument createSVGDocument() {
         DOMImplementation impl = SVGDOMImplementation.getDOMImplementation();
+
         String svgNameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
         SVGDocument doc = (SVGDocument) impl.createDocument(svgNameSpace, "svg", null);
-
-
         return doc;
     }
 
@@ -190,16 +189,16 @@ public class SvgGenerator {
 
         if (config.showAnimation) {
             Pair<String, String> svgAlignmentStrings = parse(alignment);
-            Element animation = createAnimationElement(doc, svgAlignmentStrings.first(), svgAlignmentStrings.second(), alignment.getId() + "animation", config.animationColor);
+            Element animation = createAnimationElement(doc, svgAlignmentStrings.first(), svgAlignmentStrings.second(), "ANIMATION-" + alignment.getId(), config.animationColor);
             alignmentGroup.appendChild(animation);
         }
 
         if (config.showSource) {
-            Element polylineSrc = createPolyLineElement(doc, alignment.getSourceSequence(), alignment.getId() + "source",config.sourceColor);
+            Element polylineSrc = createPolyLineElement(doc, alignment.getSourceSequence(), "SOURCE-" + alignment.getId(), config.sourceColor);
             alignmentGroup.appendChild(polylineSrc);
         }
         if (config.showTarget) {
-            Element polylineTar = createPolyLineElement(doc, alignment.getTargetSequence(),alignment.getId() + "target", config.targetColor);
+            Element polylineTar = createPolyLineElement(doc, alignment.getTargetSequence(),"TARGET-" + alignment.getId(), config.targetColor);
             alignmentGroup.appendChild(polylineTar);
         }
 
@@ -228,6 +227,7 @@ public class SvgGenerator {
         polyLineElement.setAttributeNS(null, "stroke", color);
         polyLineElement.setAttributeNS(null, "stroke-width", "1%");
         polyLineElement.setAttributeNS(null, "fill", "none");
+        polyLineElement.setAttributeNS(null, "points", ""); // animate
 
         Element animateElement = creationDoc.createElementNS(svgNameSpace, "animate");
         animateElement.setAttributeNS(null, "attributeName", "points");
@@ -237,14 +237,16 @@ public class SvgGenerator {
         animateElement.setAttributeNS(null, "to", to);
         polyLineElement.appendChild(animateElement);
 
-        String markerId = color + "Circle";
-        String startMarkerId = color + "StartCircle";
-        Element markerElement = createMarkers(creationDoc, markerId, color);
-        Element startMarkerElement = createMarkers(creationDoc, startMarkerId, config.startPointColor);
+        String markerId = "MARKER-" +id;
+        Element markerElement = createMarkers(creationDoc, markerId, config.animationColor);
         polyGroup.appendChild(markerElement);
+        polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + markerId + ")");
+
+        String startMarkerId = "MARKERSTART-" + id;
+        Element startMarkerElement = createMarkers(creationDoc, startMarkerId, config.startPointColor);
         polyGroup.appendChild(startMarkerElement);
-        polyLineElement.setAttributeNS(null, "marker", "url(#" + markerId + ")");
-        polyLineElement.setAttributeNS(null, "marker", "url(#" + startMarkerId + ")");
+        polyLineElement.setAttributeNS(null, "marker-start", "url(#" + startMarkerId + ")");
+
         polyGroup.appendChild(polyLineElement);
 
         return polyGroup;
@@ -277,10 +279,10 @@ public class SvgGenerator {
         String polyLineString = sb.substring(0, sb.length() - 1);
         polyLineElement.setAttributeNS(null, "points", polyLineString);
 
-        String markerId = id + "Marker";
+        String markerId = "MARKER-" + id;
         Element markerElement = createMarkers(creationDoc, markerId, color);
         polyGroup.appendChild(markerElement);
-        polyLineElement.setAttributeNS(null, "marker", "url(#" + markerId + ")");
+        polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + markerId + ")");
         polyGroup.appendChild(polyLineElement);
 
         return polyGroup;

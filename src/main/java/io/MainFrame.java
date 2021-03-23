@@ -5,6 +5,9 @@ import jtsadaptions.OctiLineString;
 import morph.NoMinimumOperationException;
 import morph.OctiLineMatcher;
 import morph.OctiStringAlignment;
+import org.apache.batik.dom.GenericDOMImplementation;
+import org.apache.batik.svggen.SVGGraphics2D;
+import org.apache.batik.svggen.SVGGraphics2DIOException;
 import org.apache.batik.swing.JSVGCanvas;
 import org.apache.batik.swing.gvt.GVTTreeRendererEvent;
 import org.apache.batik.swing.gvt.GVTTreeRendererListener;
@@ -14,8 +17,13 @@ import org.apache.batik.swing.svg.SVGDocumentLoaderEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.Document;
 import org.w3c.dom.svg.SVGDocument;
 import scoringStrategies.OctiMatchStrategy;
+import org.apache.batik.util.SVGConstants;
+import org.apache.batik.constants.XMLConstants;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -23,9 +31,11 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ItemEvent;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
+import java.util.List;
 
 public class MainFrame extends JFrame {
     private static final Logger logger = LogManager.getLogger();
@@ -41,7 +51,8 @@ public class MainFrame extends JFrame {
     private JButton loadTargetFileButton;
     private JCheckBox singleInputFileCheckbox;
     private JButton loadSourceAndTargetFileButton;
-    private String defaltFilePath = "./src/main/resources/";
+    private String defaultFilePath = "./src/main/resources/";
+    private String defaultSavePatch = "./src/main/resources/saves/save1.svg";
 
     private JComboBox scoringStrategy;
 
@@ -53,7 +64,7 @@ public class MainFrame extends JFrame {
     private JButton saveButton;
     private JButton runButton;
 
-    private class Conig{
+    private class Conig {
         private URI sourceUri, targetUri, singleUri;
         private boolean singleFileInput; //either use bothUri or (sourceUri and targetUri)
         private OctiMatchStrategy segmentStrategy;
@@ -115,11 +126,13 @@ public class MainFrame extends JFrame {
         public void setPolyDistanceStrategy(String polyDistanceStrategy) {
             this.polyDistanceStrategy = polyDistanceStrategy;
         }
-    };
+    }
+
+    ;
     private MainFrame.Conig conig = new Conig();
+    private SvgGenerator.Config animtaionConfig = new SvgGenerator.Config(false, false, true, "green", "green", "red", "purple");
 
-
-    public MainFrame(){
+    public MainFrame() {
         super("Polygonmorphing");
         setUp();
 
@@ -128,21 +141,80 @@ public class MainFrame extends JFrame {
 
     }
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
         MainFrame mf = new MainFrame();
         mf.setVisible(true);
         mf.pack();
     }
-    private void setUp(){
+
+    private void setUp() {
+        setUpDefaultConfig();
         mainPanel = new JPanel();
         canvas = new JSVGCanvas();
+        setUpCanvas();
         commandPanel = setUpCommandPanel();
         split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, commandPanel, canvas);
         mainPanel.add(split);
 
     }
 
-    private JPanel setUpCommandPanel(){
+    private JPanel setUpAnimationOptionsPanel() {
+        JPanel animnationOptionsPanel = new JPanel();
+        BoxLayout lm = new BoxLayout(animnationOptionsPanel, BoxLayout.Y_AXIS);
+        TitledBorder title = new TitledBorder("Animation Options");
+        animnationOptionsPanel.setBorder(title);
+        animnationOptionsPanel.setLayout(lm);
+
+        JCheckBox showSource = new JCheckBox("show source");
+        showSource.setSelected(this.animtaionConfig.showSource);
+        showSource.setHorizontalTextPosition(JCheckBox.LEFT);
+        showSource.addItemListener(event -> {
+            if (event.getStateChange() == ItemEvent.SELECTED) {
+                this.animtaionConfig.showSource = true;
+            } else if (event.getStateChange() == ItemEvent.DESELECTED) {
+                this.animtaionConfig.showSource = false;
+            }
+        });
+        animnationOptionsPanel.add(showSource);
+
+        JCheckBox showTarget = new JCheckBox("show target");
+        showTarget.setSelected(this.animtaionConfig.showTarget);
+        showTarget.setHorizontalTextPosition(JCheckBox.LEFT);
+        showTarget.addItemListener(event -> {
+            if (event.getStateChange() == ItemEvent.SELECTED) {
+                this.animtaionConfig.showTarget = true;
+            } else if (event.getStateChange() == ItemEvent.DESELECTED) {
+                this.animtaionConfig.showTarget = false;
+            }
+        });
+        animnationOptionsPanel.add(showTarget);
+
+        JCheckBox showAnimation = new JCheckBox("show animation");
+        showAnimation.setSelected(this.animtaionConfig.showAnimation);
+        showAnimation.setHorizontalTextPosition(JCheckBox.LEFT);
+        showAnimation.addItemListener(event -> {
+            if (event.getStateChange() == ItemEvent.SELECTED) {
+                this.animtaionConfig.showAnimation = true;
+            } else if (event.getStateChange() == ItemEvent.DESELECTED) {
+                this.animtaionConfig.showAnimation = false;
+            }
+        });
+        animnationOptionsPanel.add(showAnimation);
+        return animnationOptionsPanel;
+    }
+
+    private void setUpDefaultConfig() {
+        File sourceFile = new File("./src/main/resources/bone.svg");
+        this.conig.setSourceUri(sourceFile.toURI());
+
+        File targetFile = new File("./src/main/resources/octagonSquare.svg");
+        this.conig.setTargetUri(targetFile.toURI());
+
+        File bothInOneFile = new File("./src/main/resources/octagonSquare.svg");
+        this.conig.setBothUri(bothInOneFile.toURI());
+    }
+
+    private JPanel setUpCommandPanel() {
         commandPanel = new JPanel(new GridBagLayout());
         BoxLayout lm = new BoxLayout(commandPanel, BoxLayout.Y_AXIS);
         commandPanel.setLayout(lm);
@@ -152,26 +224,32 @@ public class MainFrame extends JFrame {
         JPanel stratChooser = setUpStrategyChooserPanel();
         stratChooser.setMaximumSize(new Dimension(stratChooser.getMaximumSize().width, stratChooser.getMinimumSize().height)); // dont let it grow vertically
         commandPanel.add(stratChooser);
-        statusLabel = new JLabel("status here");
-        commandPanel.add(statusLabel);
+        commandPanel.add(Box.createVerticalStrut(5));
+        commandPanel.add(setUpAnimationOptionsPanel());
+        commandPanel.add(setUpStatusPanel());
         commandPanel.add(Box.createVerticalGlue());
         commandPanel.add(setUpRunPanel());
-
         return commandPanel;
     }
 
-    private String shortenedFileButtonText(String text){
-        if(text.length() <= 28) {
-             return text;
-        }else{
-            return text.substring(text.length()-25);
+    private String shortenedFileButtonText(String text) {
+        if (text.length() <= 25) {
+            return text;
+        } else {
+            return "..." + text.substring(text.length() - 22);
         }
     }
 
+    private JPanel setUpStatusPanel() {
+        JPanel statusPanel = new JPanel();
+        TitledBorder title = new TitledBorder("Status");
+        statusPanel.setBorder(title);
+        statusLabel = new JLabel("status here");
+        statusPanel.add(statusLabel);
+        return statusPanel;
+    }
 
-
-    // no comps have weighty > 0 , so all vertically centered if more space than needed
-    private JPanel setUpFileChooserPanel(){
+    private JPanel setUpFileChooserPanel() {
         GridBagLayout gbl = new GridBagLayout();
         JPanel filePanel = new JPanel(gbl);
         TitledBorder tb = new TitledBorder("Input files");
@@ -183,17 +261,17 @@ public class MainFrame extends JFrame {
         //only manipulator of the config object, if the other checkbox is check this one will
         // be unchecked by Buttongroup and fire ItemEvent
         twoInputFilesCheckbox.addItemListener(e -> {
-            if(e.getStateChange() == ItemEvent.SELECTED){
+            if (e.getStateChange() == ItemEvent.SELECTED) {
                 logger.debug("selected dual mode");
                 this.conig.setSingleFileInput(false);
-            }else if(e.getStateChange() == ItemEvent.DESELECTED){
+            } else if (e.getStateChange() == ItemEvent.DESELECTED) {
                 logger.debug("selected mono mode");
                 this.conig.setSingleFileInput(true);
             }
         });
         gbc.gridx = 0;
         gbc.gridy = 0;
-        filePanel.add(twoInputFilesCheckbox,gbc);
+        filePanel.add(twoInputFilesCheckbox, gbc);
 
         JPanel fill1 = new JPanel(); //filler to move Label and Button to the right
         gbc.gridx = 0;
@@ -204,34 +282,34 @@ public class MainFrame extends JFrame {
 
         JLabel sourceFileLabel = new JLabel("Source");
         //have a margin of 10 for the button labels
-        Border labelBorder = new EmptyBorder(0,0,0,10);
+        Border labelBorder = new EmptyBorder(0, 0, 0, 10);
         sourceFileLabel.setBorder(labelBorder);
         gbc.gridx = 1;
         gbc.gridy = 1;
         gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.EAST; // align with its file chooser
         gbc.fill = GridBagConstraints.NONE;
-        filePanel.add(sourceFileLabel,gbc);
+        filePanel.add(sourceFileLabel, gbc);
 
-        loadSourceFileButton = new JButton("test/dir/tohave/somelength.txt");
-        gbc.insets = new Insets(0,0,5,0);
-        loadSourceFileButton.addActionListener(e -> {
-            JFileChooser fc = new JFileChooser(defaltFilePath);
-            int choice = fc.showOpenDialog(filePanel);
-            if (choice == JFileChooser.APPROVE_OPTION){
-                File file = fc.getSelectedFile();
-                this.conig.setSourceUri(file.toURI());
-                loadSourceFileButton.setText(file.toURI().toString());
-                logger.trace("source set to " + file.toURI().toString());
-            }
-        });
+        gbc.insets = new Insets(0, 0, 5, 0);
         gbc.gridx = 2;
         gbc.gridy = 1;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL; // take up the max width of a button in this column, no weight though
-        filePanel.add(loadSourceFileButton, gbc);
-        gbc.anchor = GridBagConstraints.CENTER;
+        loadSourceFileButton = new JButton();
+        loadSourceFileButton.setText(shortenedFileButtonText(this.conig.getSourceUri().toString())); //set to default
+        loadSourceFileButton.addActionListener(e -> {
+            JFileChooser fc = new JFileChooser(defaultFilePath);
+            int choice = fc.showOpenDialog(filePanel);
+            if (choice == JFileChooser.APPROVE_OPTION) {
+                File file = fc.getSelectedFile();
+                this.conig.setSourceUri(file.toURI());
+                loadSourceFileButton.setText(shortenedFileButtonText(file.toURI().toString()));
+                logger.trace("source set to " + file.toURI().toString());
+            }
+        });
 
+        filePanel.add(loadSourceFileButton, gbc);
 
         JLabel tagetFileLabel = new JLabel("Target");
         tagetFileLabel.setBorder(labelBorder);
@@ -239,17 +317,18 @@ public class MainFrame extends JFrame {
         gbc.gridy = 2;
         gbc.anchor = GridBagConstraints.EAST;
         gbc.fill = GridBagConstraints.NONE;
-        filePanel.add(tagetFileLabel,gbc);
+        filePanel.add(tagetFileLabel, gbc);
 
         // no spacer needed this row
-        loadTargetFileButton = new JButton("load...");
+        loadTargetFileButton = new JButton();
+        loadTargetFileButton.setText(shortenedFileButtonText(this.conig.getTargetUri().toString())); //set to default
         loadTargetFileButton.addActionListener(e -> {
-            JFileChooser fc = new JFileChooser(defaltFilePath);
+            JFileChooser fc = new JFileChooser(defaultFilePath);
             int choice = fc.showOpenDialog(filePanel);
-            if (choice == JFileChooser.APPROVE_OPTION){
+            if (choice == JFileChooser.APPROVE_OPTION) {
                 File file = fc.getSelectedFile();
                 this.conig.setTargetUri(file.toURI());
-                loadTargetFileButton.setText(file.toURI().toString());
+                loadTargetFileButton.setText(shortenedFileButtonText(file.toURI().toString()));
                 logger.trace("target set to " + file.toURI().toString());
             }
         });
@@ -258,7 +337,6 @@ public class MainFrame extends JFrame {
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         filePanel.add(loadTargetFileButton, gbc);
-
 
         //or seperator
         GridBagConstraints seperatorConstraints = new GridBagConstraints();
@@ -282,21 +360,18 @@ public class MainFrame extends JFrame {
         gbc.gridx = 1;
         gbc.gridy = 5;
         gbc.anchor = GridBagConstraints.EAST;
-        filePanel.add(loadBothLabel,gbc);
+        filePanel.add(loadBothLabel, gbc);
 
-        loadSourceAndTargetFileButton = new JButton("load...");
+        loadSourceAndTargetFileButton = new JButton();
+        loadSourceAndTargetFileButton.setText(shortenedFileButtonText(this.conig.getBothUri().toString())); //set to default
         loadSourceAndTargetFileButton.addActionListener(e -> {
-            JFileChooser fc = new JFileChooser(defaltFilePath);
+            JFileChooser fc = new JFileChooser(defaultFilePath);
             int choice = fc.showOpenDialog(loadSourceAndTargetFileButton);
-            if (choice == JFileChooser.APPROVE_OPTION){
+            if (choice == JFileChooser.APPROVE_OPTION) {
                 File file = fc.getSelectedFile();
                 this.conig.setBothUri(file.toURI());
                 String uriString = file.toURI().toString();
-                if(uriString.length() <= 28) {
-                    loadSourceAndTargetFileButton.setText(uriString);
-                }else{
-                    loadSourceAndTargetFileButton.setText("..." + uriString.substring(uriString.length()-25));
-                }
+                loadSourceAndTargetFileButton.setText(shortenedFileButtonText(uriString));
                 logger.trace("mono set to " + file.toURI().toString());
             }
         });
@@ -306,7 +381,6 @@ public class MainFrame extends JFrame {
         gbc.anchor = GridBagConstraints.CENTER;
         filePanel.add(loadSourceAndTargetFileButton, gbc);
 
-
         ButtonGroup selectionModes = new ButtonGroup();
         selectionModes.add(twoInputFilesCheckbox);
         selectionModes.add(singleInputFileCheckbox);
@@ -315,18 +389,18 @@ public class MainFrame extends JFrame {
         return filePanel;
     }
 
-    private JPanel setUpHorizonatlSeperator(String text){
+    private JPanel setUpHorizonatlSeperator(String text) {
         JSeparator lsep = new JSeparator(SwingConstants.HORIZONTAL);
 
         lsep.setPreferredSize(new Dimension(100, 5));
-        lsep.setMinimumSize((new Dimension(5,5)));
-        lsep.setMaximumSize((new Dimension(100000,5)));
+        lsep.setMinimumSize((new Dimension(5, 5)));
+        lsep.setMaximumSize((new Dimension(100000, 5)));
         lsep.setBackground(new Color(68, 66, 66));
 
         JSeparator rsep = new JSeparator(SwingConstants.HORIZONTAL);
         rsep.setPreferredSize(new Dimension(100, 5));
-        rsep.setMinimumSize((new Dimension(5,5)));
-        rsep.setMaximumSize((new Dimension(100000,5)));
+        rsep.setMinimumSize((new Dimension(5, 5)));
+        rsep.setMaximumSize((new Dimension(100000, 5)));
         rsep.setBackground(new Color(68, 66, 66));
 
         JLabel seperatorLabel = new JLabel(text);
@@ -340,15 +414,15 @@ public class MainFrame extends JFrame {
         gbc.fill = GridBagConstraints.NONE;
         gbc.gridx = 1;
         gbc.weightx = 0;
-        seperatorPanel.add(seperatorLabel,gbc);
+        seperatorPanel.add(seperatorLabel, gbc);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.gridx = 2;
         gbc.weightx = 1.0;
-        seperatorPanel.add(rsep,gbc);
+        seperatorPanel.add(rsep, gbc);
         return seperatorPanel;
     }
 
-    private JPanel setUpStrategyChooserPanel(){
+    private JPanel setUpStrategyChooserPanel() {
         JPanel strategyPanel = new JPanel(new GridBagLayout());
 
         Border border = new TitledBorder("Strategy");
@@ -360,14 +434,14 @@ public class MainFrame extends JFrame {
         gbc.gridy = 0;
         gbc.weightx = 1;
         JLabel operationCostLabel = new JLabel("Operation Stategy");
-        strategyPanel.add(operationCostLabel,gbc);
+        strategyPanel.add(operationCostLabel, gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(0,0,5,0);
+        gbc.insets = new Insets(0, 0, 5, 0);
         // placeholder , should probably be gathered from factory dynamically
-        String[] strategyStrings = new String[]{"BaseMatch", "FlatScore", "AffineGap(todo)" };
+        String[] strategyStrings = new String[]{"BaseMatch", "FlatScore", "AffineGap(todo)"};
         JComboBox<String> strategyPicker = new JComboBox<>(strategyStrings); //listmmdel , comboboxmodel
         strategyPanel.add(strategyPicker, gbc);
 
@@ -375,37 +449,37 @@ public class MainFrame extends JFrame {
         gbc.gridy = 1;
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.NONE;
-        gbc.insets = new Insets(0,0,0,0);
+        gbc.insets = new Insets(0, 0, 0, 0);
         JLabel visibilityLabel = new JLabel("Visibility");
-        strategyPanel.add(visibilityLabel,gbc);
+        strategyPanel.add(visibilityLabel, gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 0; //dynamically also here
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(0,0,5,0);
+        gbc.insets = new Insets(0, 0, 5, 0);
         String[] visibilityDecoratorStrings = new String[]{"No constraints", "src doesn't obstruct", "Total"};
         JComboBox<String> visibilityPicker = new JComboBox<>(visibilityDecoratorStrings);
-        strategyPanel.add(visibilityPicker,gbc);
+        strategyPanel.add(visibilityPicker, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.NONE;
-        gbc.insets = new Insets(0,0,0,0);
+        gbc.insets = new Insets(0, 0, 0, 0);
         JLabel polyDistanceLabel = new JLabel("PolygonMatch Distance");
-        strategyPanel.add(polyDistanceLabel,gbc);
+        strategyPanel.add(polyDistanceLabel, gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 0;//dynamically also here
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        String[] polyDistanceStrings = new String[]{"Intersetcion over Union", "centroid distance"};
+        String[] polyDistanceStrings = new String[]{"Intersection over Union", "centroid distance"};
         JComboBox<String> polyDistancePicker = new JComboBox<>(polyDistanceStrings);
-        strategyPanel.add(polyDistancePicker,gbc);
+        strategyPanel.add(polyDistancePicker, gbc);
 
         return strategyPanel;
     }
 
-    private void setUpCanvas(){
+    private void setUpCanvas() {
 
         this.canvas.addGVTTreeRendererListener(new GVTTreeRendererListener() {
             @Override
@@ -461,104 +535,159 @@ public class MainFrame extends JFrame {
 
     }
 
-    private JPanel setUpRunPanel(){
+    private void calcSvg(MainFrame.Conig configuartion) throws Exception {
+        Geometry sourceGeometry, targetGeometry;
+        StringBuilder sb = new StringBuilder();
+        if (configuartion.isSingleFileInput()) {
+            PolygonExtractorInterface dualExtractor = new PolygonExtractor();
+            try {
+                dualExtractor.parseFile(configuartion.getBothUri());
+            } catch (FileParseException e) {
+                sb.append(e.getMessage());
+                e.printStackTrace();
+                return;
+            } catch (IOException e) {
+                sb.append(e.getMessage());
+                e.printStackTrace();
+                return;
+            }
+            if (dualExtractor.numberOfParsedGeometries() != 2) {
+                logger.warn("Dual File must contain exactly 2 parsable Geometries");
+                sb.append("Dual File must contain exactly 2 parsable Geometries");
+                return;
+            }
+            sourceGeometry = dualExtractor.getNthGeometry(0);
+            targetGeometry = dualExtractor.getNthGeometry(1);
+
+        } else {
+            PolygonExtractorInterface sourceExtractor = new PolygonExtractor();
+            PolygonExtractorInterface targetExtractor = new PolygonExtractor();
+            try {
+                sourceExtractor.parseFile(configuartion.getSourceUri());
+                targetExtractor.parseFile(configuartion.getTargetUri());
+            } catch (FileParseException e) {
+                //statusLabel.setText(e.getMessage());
+                logger.warn(e.getMessage());
+                sb.append(e.getMessage());
+                e.printStackTrace();
+                return;
+            } catch (IOException e) {
+                statusLabel.setText(e.getMessage());
+                sb.append(e.getMessage());
+                e.printStackTrace();
+                return;
+            }
+
+            if (sourceExtractor.numberOfParsedGeometries() != 1)
+                sb.append("Source File must contain exactly 1 parsable Geometry");
+            if (targetExtractor.numberOfParsedGeometries() != 1)
+                sb.append("Target File must contain exactly 1 parsable Geometry");
+
+            if (sourceExtractor.numberOfParsedGeometries() > 1 || targetExtractor.numberOfParsedGeometries() > 1) {
+                List<Geometry> sourceGeoms = sourceExtractor.getGeometryList();
+                List<Geometry> targetGeoms = targetExtractor.getGeometryList();
+                sourceGeoms.sort(Comparator.comparingDouble(Geometry::getArea));
+                targetGeoms.sort(Comparator.comparingDouble(Geometry::getArea));
+                sourceGeometry = sourceGeoms.get(0);
+                targetGeometry = targetGeoms.get(0);
+            } else {
+                sourceGeometry = sourceExtractor.getNthGeometry(0);
+                targetGeometry = targetExtractor.getNthGeometry(0);
+            }
+        }
+
+        //normally match the polygons first, for now just take one outer ring
+        if ((!(sourceGeometry instanceof org.locationtech.jts.geom.Polygon || sourceGeometry instanceof OctiLineString))
+                &&
+                (!(targetGeometry instanceof org.locationtech.jts.geom.Polygon || targetGeometry instanceof OctiLineString))) {
+
+            if (sourceGeometry instanceof MultiPolygon && sourceGeometry.getNumGeometries() == 1) {
+                sourceGeometry = sourceGeometry.getGeometryN(0);
+            } else {
+                statusLabel.setText("Geometries not supported yet");
+                sb.append("Geometries not supported yet");
+                return;
+            }
+            if (targetGeometry instanceof MultiPolygon && targetGeometry.getNumGeometries() == 1) {
+                targetGeometry = targetGeometry.getGeometryN(0);
+            } else {
+                statusLabel.setText("Geometries not supported yet");
+                sb.append("Geometries not supported yet");
+                return;
+            }
+        }
+
+        OctiLineString srcString, tarString;
+        try {
+            srcString = OctiGeometryFactory.OCTI_FACTORY.convertToOctiLineString(sourceGeometry);
+            tarString = OctiGeometryFactory.OCTI_FACTORY.convertToOctiLineString(targetGeometry);
+        } catch (Exception e) {
+            statusLabel.setText("couldn't extract the OctilineString from provided Geometry");
+            sb.append("couldn't extract the OctilineString from provided Geometry");
+            e.printStackTrace();
+            return;
+        }
+
+        OctiLineMatcher olm = new OctiLineMatcher(srcString, tarString);
+        OctiStringAlignment stringAlignment;
+        try {
+            stringAlignment = olm.getAlignment();
+        } catch (NoMinimumOperationException e) {
+            statusLabel.setText("couldn't calculate alignment");
+            sb.append("couldn't calculate alignment");
+            e.printStackTrace();
+            return;
+        }
+
+        SvgGenerator svgGenerator = new SvgGenerator(animtaionConfig);
+        this.doc = svgGenerator.generateSVG(stringAlignment);
+        this.canvas.setSVGDocument(doc);
+        this.canvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
+    }
+
+    private JPanel setUpRunPanel() {
         JPanel actionsPanel = new JPanel(new FlowLayout());
         Border border = new TitledBorder("Run");
         actionsPanel.setBorder(border);
-        JButton saveButton = new JButton("S");
+        JButton saveButton = new JButton("Save");
+        saveButton.addActionListener(actionEvent -> {
+            logger.trace("saving file");
+            if (this.doc != null) {
+                saveDocument(this.doc);
+
+            }
+        });
         actionsPanel.add(saveButton);
         JButton runButton = new JButton("Run");
 
         runButton.addActionListener(actionEvent -> {
-            Geometry sourceGeometry,targetGeometry;
-
-            if(! conig.isSingleFileInput()){
-                PolygonExtractorInterface sourceExtractor = new PolygonExtractor();
-                PolygonExtractorInterface targetExtractor = new PolygonExtractor();
-                try {
-                    sourceExtractor.parseFile(this.conig.getSourceUri());
-                    targetExtractor.parseFile(this.conig.getTargetUri());
-                } catch (FileParseException e) {
-                    statusLabel.setText(e.getMessage());
-                    e.printStackTrace();
-                    return;
-                } catch (IOException e) {
-                    statusLabel.setText(e.getMessage());
-                    e.printStackTrace();
-                    return;
-                }
-                if(sourceExtractor.numberOfParsedGeometries() != 1){
-                    statusLabel.setText("Source File must contain exactly 1 parsable Geometry");
-                    return;
-                }
-                if(targetExtractor.numberOfParsedGeometries() != 1){
-                    statusLabel.setText("Target File must contain exactly 1 parsable Geometry");
-                    return;
-                }
-                sourceGeometry = sourceExtractor.getNthGeometry(0);
-                targetGeometry = targetExtractor.getNthGeometry(0);
-
-            }else {
-                PolygonExtractorInterface dualExtractor = new PolygonExtractor();
-                try {
-                    dualExtractor.parseFile(this.conig.getBothUri());
-                } catch (FileParseException e) {
-                    statusLabel.setText(e.getMessage());
-                    e.printStackTrace();
-                    return;
-                } catch (IOException e) {
-                    statusLabel.setText(e.getMessage());
-                    e.printStackTrace();
-                    return;
-                }
-                if(dualExtractor.numberOfParsedGeometries() != 2){
-                    statusLabel.setText("Dual File must contain exactly 1 parsable Geometry");
-                    return;
-                }
-                sourceGeometry = dualExtractor.getNthGeometry(0);
-                targetGeometry = dualExtractor.getNthGeometry(1);
-            }
-
-            //normally match the polygons first, for now just take one outer ring
-            if(     (! (sourceGeometry instanceof org.locationtech.jts.geom.Polygon || sourceGeometry instanceof OctiLineString))
-                    &&
-                    (! (targetGeometry instanceof org.locationtech.jts.geom.Polygon || targetGeometry instanceof OctiLineString)))
-            {
-                statusLabel.setText("Geometries not supported yet");
-                return;
-            }
-
-            OctiLineString srcString,tarString;
+            statusLabel.setText("");
             try {
-                srcString = OctiGeometryFactory.OCTI_FACTORY.convertToOctiLineString(sourceGeometry);
-                tarString = OctiGeometryFactory.OCTI_FACTORY.convertToOctiLineString(targetGeometry);
+                calcSvg(this.conig);
             } catch (Exception e) {
-                statusLabel.setText("couldn't extract the OctilineString from provided Geometry");
-                e.printStackTrace();
-                return;
+                logger.warn("couldn't calc svg :" + e.getMessage());
+                statusLabel.setText(e.getMessage());
             }
-
-            OctiLineMatcher olm = new OctiLineMatcher(srcString,tarString);
-            OctiStringAlignment stringAlignment;
-            try {
-                stringAlignment = olm.getAlignment();
-            } catch (NoMinimumOperationException e) {
-                statusLabel.setText("couldn't calculate alignment");
-                e.printStackTrace();
-                return;
-            }
-            SvgGenerator svgGenerator = new SvgGenerator();
-            this.doc = svgGenerator.generateSVG(stringAlignment);
-            this.canvas.setSVGDocument(doc);
-            this.canvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
-
         });
 
         actionsPanel.add(runButton);
-        actionsPanel.setMaximumSize(new Dimension(actionsPanel.getMaximumSize().width,actionsPanel.getMinimumSize().height));
+        actionsPanel.setMaximumSize(new Dimension(actionsPanel.getMaximumSize().width, actionsPanel.getMinimumSize().height));
 
         return actionsPanel;
     }
 
+    private void saveDocument(SVGDocument doc) {
+        // Create an instance of the SVG Generator.
+        SVGGraphics2D svgGenerator = new SVGGraphics2D(doc);
+
+        try {
+            FileOutputStream fos = new FileOutputStream(this.defaultSavePatch);
+            Writer out = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+            svgGenerator.stream(doc.getDocumentElement(), out, false, false);
+        } catch (FileNotFoundException | SVGGraphics2DIOException e) {
+            logger.warn(e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
 }
