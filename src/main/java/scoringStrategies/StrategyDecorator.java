@@ -8,6 +8,8 @@ public abstract class StrategyDecorator implements OctiMatchStrategy{
 
     protected OctiMatchStrategy underlyingStrategy;
 
+    private StrategyDecorator() { }
+
     public StrategyDecorator(OctiMatchStrategy underlyingStrategy){
         this.underlyingStrategy = underlyingStrategy;
     }

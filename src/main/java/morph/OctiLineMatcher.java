@@ -14,6 +14,8 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
 import org.twak.utils.Pair;
 import scoringStrategies.BaseMatchStrategy;
+import scoringStrategies.OctiMatchStrategy;
+import scoringStrategies.ScoringStrategyFactory;
 import scoringStrategies.VisibilityMatchStrategy;
 
 import java.io.IOException;
@@ -130,7 +132,7 @@ public class OctiLineMatcher {
             }
         }
 
-        //considers the case of non-closednes
+        //considers the case of non-closedness
         int[] startpoints = determineBestStartingPoint(src,tar);
         src = src.makeNthPointTheFirst(startpoints[0]);
         tar = tar.makeNthPointTheFirst(startpoints[1]);
@@ -144,16 +146,19 @@ public class OctiLineMatcher {
      * @param targetLineString the target String
      */
     public OctiLineMatcher(OctiLineString sourceLineString, OctiLineString targetLineString) {
+        this(sourceLineString,targetLineString, new BaseMatchStrategy());
+    }
+
+    public OctiLineMatcher(OctiLineString sourceLineString, OctiLineString targetLineString, OctiMatchStrategy strategy){
         Pair<OctiLineString,OctiLineString> baseConfig = createBaseConfig(sourceLineString,targetLineString);
         source = baseConfig.first();
         target = baseConfig.second();
 
         //must be after bringing the strings into start configuration
-        OctiLineSegment.setStrategy(new BaseMatchStrategy(), source, target);
+        OctiLineSegment.setStrategy(strategy, source, target);
 
         initBoard();
         iterateBoard();
-
     }
 
     /**

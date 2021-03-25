@@ -21,9 +21,9 @@ public class TargetVisibleStrategy extends StrategyDecorator {
     private static Logger logger = LogManager.getLogger();
     public final Map<Pair<Coordinate,Coordinate>, Boolean> visibilityMap = new HashMap<>();
 
-
     public TargetVisibleStrategy(OctiMatchStrategy underlyingStrategy) {
         super(underlyingStrategy);
+        logger.trace("target visible strategy");
     }
     /**
      * @param srcPoint

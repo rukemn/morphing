@@ -5,7 +5,7 @@ import jtsadaptions.OctiLineString;
 import morph.NoMinimumOperationException;
 import morph.OctiLineMatcher;
 import morph.OctiStringAlignment;
-import org.apache.batik.dom.GenericDOMImplementation;
+
 import org.apache.batik.svggen.SVGGraphics2D;
 import org.apache.batik.svggen.SVGGraphics2DIOException;
 import org.apache.batik.swing.JSVGCanvas;
@@ -18,12 +18,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.MultiPolygon;
-import org.w3c.dom.DOMImplementation;
-import org.w3c.dom.Document;
+
 import org.w3c.dom.svg.SVGDocument;
 import scoringStrategies.OctiMatchStrategy;
-import org.apache.batik.util.SVGConstants;
-import org.apache.batik.constants.XMLConstants;
+import scoringStrategies.ScoringStrategyFactory;
+import scoringStrategies.StrategyInitializationException;
+
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -34,6 +34,10 @@ import java.awt.event.ItemEvent;
 import java.io.*;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -52,9 +56,11 @@ public class MainFrame extends JFrame {
     private JCheckBox singleInputFileCheckbox;
     private JButton loadSourceAndTargetFileButton;
     private String defaultFilePath = "./src/main/resources/";
-    private String defaultSavePatch = "./src/main/resources/saves/save1.svg";
+    private String defaultSavePath = "./src/main/resources/saves/";
 
-    private JComboBox scoringStrategy;
+    private JComboBox<String> strategyPicker;
+    private JComboBox<String> visibilityPicker;
+    private JComboBox<String> polyDistancePicker;
 
     private JCheckBox showAnimationCheckBox;
     private JCheckBox showSourceCheckBox;
@@ -68,7 +74,7 @@ public class MainFrame extends JFrame {
         private URI sourceUri, targetUri, singleUri;
         private boolean singleFileInput; //either use bothUri or (sourceUri and targetUri)
         private OctiMatchStrategy segmentStrategy;
-        private OctiMatchStrategy visibilityConstraints;
+
         private String polyDistanceStrategy;
 
         public URI getSourceUri() {
@@ -111,14 +117,6 @@ public class MainFrame extends JFrame {
             this.segmentStrategy = segmentStrategy;
         }
 
-        public OctiMatchStrategy getVisibilityConstraints() {
-            return visibilityConstraints;
-        }
-
-        public void setVisibilityConstraints(OctiMatchStrategy visibilityConstraints) {
-            this.visibilityConstraints = visibilityConstraints;
-        }
-
         public String getPolyDistanceStrategy() {
             return polyDistanceStrategy;
         }
@@ -148,7 +146,7 @@ public class MainFrame extends JFrame {
     }
 
     private void setUp() {
-        setUpDefaultConfig();
+        setUpDefaultPathConfig();
         mainPanel = new JPanel();
         canvas = new JSVGCanvas();
         setUpCanvas();
@@ -203,7 +201,7 @@ public class MainFrame extends JFrame {
         return animnationOptionsPanel;
     }
 
-    private void setUpDefaultConfig() {
+    private void setUpDefaultPathConfig() {
         File sourceFile = new File("./src/main/resources/bone.svg");
         this.conig.setSourceUri(sourceFile.toURI());
 
@@ -441,8 +439,12 @@ public class MainFrame extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 0, 5, 0);
         // placeholder , should probably be gathered from factory dynamically
-        String[] strategyStrings = new String[]{"BaseMatch", "FlatScore", "AffineGap(todo)"};
-        JComboBox<String> strategyPicker = new JComboBox<>(strategyStrings); //listmmdel , comboboxmodel
+
+        String[] strategyStrings =  ScoringStrategyFactory.getStrategies().toArray(new String[0]);
+        strategyPicker = new JComboBox<>(strategyStrings); //listmodel , comboboxmodel
+        strategyPicker.addItemListener(itemEvent -> {
+            if(itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
+        });
         strategyPanel.add(strategyPicker, gbc);
 
         gbc.gridx = 0;
@@ -450,15 +452,19 @@ public class MainFrame extends JFrame {
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(0, 0, 0, 0);
-        JLabel visibilityLabel = new JLabel("Visibility");
+        JLabel visibilityLabel = new JLabel("Decorator");
         strategyPanel.add(visibilityLabel, gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 0; //dynamically also here
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 0, 5, 0);
-        String[] visibilityDecoratorStrings = new String[]{"No constraints", "src doesn't obstruct", "Total"};
-        JComboBox<String> visibilityPicker = new JComboBox<>(visibilityDecoratorStrings);
+        String[] visibilityDecoratorStrings = ScoringStrategyFactory.getDecorators().toArray(new String[0]);
+        visibilityPicker = new JComboBox<>(visibilityDecoratorStrings);
+        visibilityPicker.addItemListener(itemEvent -> {
+            if(itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
+        });
+
         strategyPanel.add(visibilityPicker, gbc);
 
         gbc.gridx = 0;
@@ -473,8 +479,14 @@ public class MainFrame extends JFrame {
         gbc.weightx = 0;//dynamically also here
         gbc.fill = GridBagConstraints.HORIZONTAL;
         String[] polyDistanceStrings = new String[]{"Intersection over Union", "centroid distance"};
-        JComboBox<String> polyDistancePicker = new JComboBox<>(polyDistanceStrings);
+        polyDistancePicker = new JComboBox<>(polyDistanceStrings);
+        polyDistancePicker.addItemListener(itemEvent -> {
+            if(itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
+        });
         strategyPanel.add(polyDistancePicker, gbc);
+
+        //now fill the config object with the first items of the comboBoxes
+        this.setStrategy();
 
         return strategyPanel;
     }
@@ -535,13 +547,34 @@ public class MainFrame extends JFrame {
 
     }
 
-    private void calcSvg(MainFrame.Conig configuartion) throws Exception {
+    /**
+     * Whenever a strategy-{@link JComboBox} changes, call this method to get the new total {@link OctiMatchStrategy}
+     * from {@link ScoringStrategyFactory}.
+     * This method sets the {@link MainFrame.Conig}
+     */
+    private void setStrategy(){
+        String strategyName = (String) this.strategyPicker.getSelectedItem();
+        String decorators = (String) this.visibilityPicker.getSelectedItem();
+        logger.trace("setting base strat to " + strategyName);
+        logger.trace("setting decorators to " + decorators);
+        List<String> decoratorList = new ArrayList<>();
+        decoratorList.add(decorators);
+        try {
+            this.conig.setSegmentStrategy(ScoringStrategyFactory.getStrategy(strategyName, decoratorList));
+        } catch (StrategyInitializationException e) {
+            logger.trace("Cant build a strategy from current selection");
+            statusLabel.setText("Cant build a strategy from current selection");
+            e.printStackTrace();
+        }
+    }
+
+    private void calcSvg(MainFrame.Conig configuration){
         Geometry sourceGeometry, targetGeometry;
         StringBuilder sb = new StringBuilder();
-        if (configuartion.isSingleFileInput()) {
+        if (configuration.isSingleFileInput()) {
             PolygonExtractorInterface dualExtractor = new PolygonExtractor();
             try {
-                dualExtractor.parseFile(configuartion.getBothUri());
+                dualExtractor.parseFile(configuration.getBothUri());
             } catch (FileParseException e) {
                 sb.append(e.getMessage());
                 e.printStackTrace();
@@ -563,8 +596,8 @@ public class MainFrame extends JFrame {
             PolygonExtractorInterface sourceExtractor = new PolygonExtractor();
             PolygonExtractorInterface targetExtractor = new PolygonExtractor();
             try {
-                sourceExtractor.parseFile(configuartion.getSourceUri());
-                targetExtractor.parseFile(configuartion.getTargetUri());
+                sourceExtractor.parseFile(configuration.getSourceUri());
+                targetExtractor.parseFile(configuration.getTargetUri());
             } catch (FileParseException e) {
                 //statusLabel.setText(e.getMessage());
                 logger.warn(e.getMessage());
@@ -628,7 +661,7 @@ public class MainFrame extends JFrame {
             return;
         }
 
-        OctiLineMatcher olm = new OctiLineMatcher(srcString, tarString);
+        OctiLineMatcher olm = new OctiLineMatcher(srcString, tarString, this.conig.getSegmentStrategy());
         OctiStringAlignment stringAlignment;
         try {
             stringAlignment = olm.getAlignment();
@@ -654,7 +687,6 @@ public class MainFrame extends JFrame {
             logger.trace("saving file");
             if (this.doc != null) {
                 saveDocument(this.doc);
-
             }
         });
         actionsPanel.add(saveButton);
@@ -679,9 +711,12 @@ public class MainFrame extends JFrame {
     private void saveDocument(SVGDocument doc) {
         // Create an instance of the SVG Generator.
         SVGGraphics2D svgGenerator = new SVGGraphics2D(doc);
-
+        Instant currentTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        logger.trace("save as " +currentTime.toString());
         try {
-            FileOutputStream fos = new FileOutputStream(this.defaultSavePatch);
+            String filePath = this.defaultSavePath + currentTime.toString() + ".svg";
+            logger.trace(filePath);
+            FileOutputStream fos = new FileOutputStream(filePath);
             Writer out = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
             svgGenerator.stream(doc.getDocumentElement(), out, false, false);
         } catch (FileNotFoundException | SVGGraphics2DIOException e) {

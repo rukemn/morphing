@@ -7,16 +7,11 @@ import org.locationtech.jts.geom.Coordinate;
 /**
  * only considers whether or not its a match, in contrast to taking edge length or distance in consideration
  */
-public class FlatScoreStrategy extends StrategyDecorator {
-
-    public FlatScoreStrategy(OctiMatchStrategy underlyingStrategy) {
-        super(underlyingStrategy);
-    }
+public class FlatScoreStrategy implements OctiMatchStrategy {
 
     @Override
     public void initStrategy(OctiLineString sourceString, OctiLineString targetString) {
-        //maximum diagonal elements/ matches total score >= 0
-        //maxScore = Math.min(sourceString.size() , targetString.size());
+        // no init needed
     }
 
     @Override
