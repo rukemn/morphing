@@ -3,6 +3,7 @@ package io;
 import morph.OctiSegmentAlignment;
 import morph.OctiStringAlignment;
 import org.apache.batik.anim.dom.SVGDOMImplementation;
+import org.apache.batik.anim.dom.SVGOMDocument;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Coordinate;
@@ -12,9 +13,8 @@ import org.twak.utils.Pair;
 
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
 import org.w3c.dom.svg.SVGDocument;
+import org.w3c.dom.svg.SVGSVGElement;
 
 import java.awt.Dimension;
 import java.util.Iterator;
@@ -48,6 +48,7 @@ public class SvgGenerator {
     }
 
     private Config config = new Config(false, false, true, "green", "green", "red", "purple");
+    private static double animationDurationTime = 5;
     private static final Logger logger = LogManager.getLogger();
 
     public SvgGenerator(){ }
@@ -56,6 +57,56 @@ public class SvgGenerator {
         this.config = config;
     }
 
+    /**Pauses all animations in the document and returns its current animation progress/time
+     * 0 represents the
+     *
+     * @param doc
+     * @return the point in time the animation was paused at
+     */
+    public synchronized static float pause(SVGDocument doc){
+        SVGOMDocument omDoc = (SVGOMDocument) doc;
+        SVGSVGElement svgEl = omDoc.getRootElement();
+        if(omDoc.getRootElement().animationsPaused()) {
+            logger.warn("setting to running");
+            omDoc.getRootElement().unpauseAnimations();
+        }else { // is running
+            logger.warn("setting to Pause");
+            omDoc.getRootElement().pauseAnimations();
+        }
+        logger.warn("paused at" + svgEl.getCurrentTime());
+        return svgEl.getCurrentTime() % (float) animationDurationTime;
+    }
+
+    /**
+     * Sets the animation Time to the value specified in the interval [0,1) ,
+     *  where 0 equals the start and 1 the start of the next animation loop.
+     *  If the end is desired call this function with a value just below 1
+     *
+     * if a value smaller than 0 is given , the animation time is set to its start
+     * if a value bigger than 1 is given, the animation time is set to its end (via time = 0.0.9999999f)
+     *
+     * @param time the time
+     */
+    public static void setAnimationTime(SVGDocument doc, float time){
+        if(time < 0) time = 0.0f;
+        if(time > 1 || time == 1) time = 0.9999999999f;
+        time *= animationDurationTime;
+
+        //cast it into stoppable svg
+        SVGOMDocument omDoc = (SVGOMDocument) doc;
+        omDoc.getRootElement().setCurrentTime(time);
+        logger.trace("set animationTime: " + time);
+    }
+
+    public static float getAnimationTime(SVGDocument doc){
+        SVGOMDocument omDoc = (SVGOMDocument) doc;
+        float time = omDoc.getRootElement().getCurrentTime();
+        logger.trace("time" + time);
+        time %= animationDurationTime; //remainder
+        time /= animationDurationTime; //scale to [0,1)
+        logger.trace("time in animation" + time);
+        return time;
+    }
     private Pair<String, String> parse(OctiStringAlignment alignments) {
         StringBuilder srcBuilder = new StringBuilder();
         StringBuilder tarBuilder = new StringBuilder();
@@ -231,12 +282,11 @@ public class SvgGenerator {
 
         Element animateElement = creationDoc.createElementNS(svgNameSpace, "animate");
         animateElement.setAttributeNS(null, "attributeName", "points");
-        animateElement.setAttributeNS(null, "dur", "5s");
+        animateElement.setAttributeNS(null, "dur", animationDurationTime + "s");
         animateElement.setAttributeNS(null, "repeatCount", "indefinite");
         animateElement.setAttributeNS(null, "from", from);
         animateElement.setAttributeNS(null, "to", to);
         polyLineElement.appendChild(animateElement);
-
         String markerId = "MARKER-" +id;
         Element markerElement = createMarkers(creationDoc, markerId, config.animationColor);
         polyGroup.appendChild(markerElement);

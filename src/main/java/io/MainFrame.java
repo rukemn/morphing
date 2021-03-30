@@ -6,6 +6,7 @@ import morph.NoMinimumOperationException;
 import morph.OctiLineMatcher;
 import morph.OctiStringAlignment;
 
+import org.apache.batik.anim.dom.SVGOMDocument;
 import org.apache.batik.svggen.SVGGraphics2D;
 import org.apache.batik.svggen.SVGGraphics2DIOException;
 import org.apache.batik.swing.JSVGCanvas;
@@ -25,10 +26,13 @@ import scoringStrategies.ScoringStrategyFactory;
 import scoringStrategies.StrategyInitializationException;
 
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.io.*;
@@ -40,7 +44,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-
+//todo have Stringbuilder for messages for each "user story", after comletion display in statuslabel
 public class MainFrame extends JFrame {
     private static final Logger logger = LogManager.getLogger();
     private JPanel mainPanel;
@@ -49,6 +53,19 @@ public class MainFrame extends JFrame {
     private JPanel commandPanel; // left panel
     private JSVGCanvas canvas; // to the right
     private SVGDocument doc;
+
+    public boolean isDocInUse() {
+        return docInUse;
+    }
+
+    public void setDocInUse(boolean docInUse) {
+        this.docInUse = docInUse;
+    }
+
+    private boolean docInUse = false;
+    private boolean isPaused = false;
+    private final Icon playIcon = new ImageIcon("./src/main/resources/icons/playIcon.png");
+    private final Icon pauseIcon = new ImageIcon("./src/main/resources/icons/pauseIcon.png");
 
     private JCheckBox twoInputFilesCheckbox;
     private JButton loadSourceFileButton;
@@ -202,13 +219,13 @@ public class MainFrame extends JFrame {
     }
 
     private void setUpDefaultPathConfig() {
-        File sourceFile = new File("./src/main/resources/bone.svg");
+        File sourceFile = new File("./src/main/resources/svg/bone.svg");
         this.conig.setSourceUri(sourceFile.toURI());
 
-        File targetFile = new File("./src/main/resources/octagonSquare.svg");
+        File targetFile = new File("./src/main/resources/svg/octagonSquare.svg");
         this.conig.setTargetUri(targetFile.toURI());
 
-        File bothInOneFile = new File("./src/main/resources/octagonSquare.svg");
+        File bothInOneFile = new File("./src/main/resources/svg/octagonSquare.svg");
         this.conig.setBothUri(bothInOneFile.toURI());
     }
 
@@ -226,6 +243,7 @@ public class MainFrame extends JFrame {
         commandPanel.add(setUpAnimationOptionsPanel());
         commandPanel.add(setUpStatusPanel());
         commandPanel.add(Box.createVerticalGlue());
+        commandPanel.add(setUpAnimationControlPanel());
         commandPanel.add(setUpRunPanel());
         return commandPanel;
     }
@@ -440,10 +458,10 @@ public class MainFrame extends JFrame {
         gbc.insets = new Insets(0, 0, 5, 0);
         // placeholder , should probably be gathered from factory dynamically
 
-        String[] strategyStrings =  ScoringStrategyFactory.getStrategies().toArray(new String[0]);
+        String[] strategyStrings = ScoringStrategyFactory.getStrategies().toArray(new String[0]);
         strategyPicker = new JComboBox<>(strategyStrings); //listmodel , comboboxmodel
         strategyPicker.addItemListener(itemEvent -> {
-            if(itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
+            if (itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
         });
         strategyPanel.add(strategyPicker, gbc);
 
@@ -462,7 +480,7 @@ public class MainFrame extends JFrame {
         String[] visibilityDecoratorStrings = ScoringStrategyFactory.getDecorators().toArray(new String[0]);
         visibilityPicker = new JComboBox<>(visibilityDecoratorStrings);
         visibilityPicker.addItemListener(itemEvent -> {
-            if(itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
+            if (itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
         });
 
         strategyPanel.add(visibilityPicker, gbc);
@@ -481,7 +499,7 @@ public class MainFrame extends JFrame {
         String[] polyDistanceStrings = new String[]{"Intersection over Union", "centroid distance"};
         polyDistancePicker = new JComboBox<>(polyDistanceStrings);
         polyDistancePicker.addItemListener(itemEvent -> {
-            if(itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
+            if (itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
         });
         strategyPanel.add(polyDistancePicker, gbc);
 
@@ -506,11 +524,7 @@ public class MainFrame extends JFrame {
 
             @Override
             public void gvtRenderingCompleted(GVTTreeRendererEvent e) {
-                /*ogger.trace("rendering and loading complete");
-                Dimension svgDim = SvgGenerator.retrieveDimension(doc);
-                if(svgDim.height < minimumCanvasDimension.height || svgDim.width < minimumCanvasDimension.width) svgDim = minimumCanvasDimension;
-                svgCanvas.setPreferredSize(svgDim);
-                frame.pack();*/
+                setDocInUse(true);
             }
 
             @Override
@@ -552,7 +566,7 @@ public class MainFrame extends JFrame {
      * from {@link ScoringStrategyFactory}.
      * This method sets the {@link MainFrame.Conig}
      */
-    private void setStrategy(){
+    private void setStrategy() {
         String strategyName = (String) this.strategyPicker.getSelectedItem();
         String decorators = (String) this.visibilityPicker.getSelectedItem();
         logger.trace("setting base strat to " + strategyName);
@@ -568,7 +582,7 @@ public class MainFrame extends JFrame {
         }
     }
 
-    private void calcSvg(MainFrame.Conig configuration){
+    private void calcSvg(MainFrame.Conig configuration) {
         Geometry sourceGeometry, targetGeometry;
         StringBuilder sb = new StringBuilder();
         if (configuration.isSingleFileInput()) {
@@ -675,17 +689,126 @@ public class MainFrame extends JFrame {
         SvgGenerator svgGenerator = new SvgGenerator(animtaionConfig);
         this.doc = svgGenerator.generateSVG(stringAlignment);
         this.canvas.setSVGDocument(doc);
+        /*this.canvas.addGVTTreeRendererListener(new GVTTreeRendererListener() {
+            @Override
+            public void gvtRenderingPrepare(GVTTreeRendererEvent e) {
+
+            }
+
+            @Override
+            public void gvtRenderingStarted(GVTTreeRendererEvent e) {
+
+            }
+
+            @Override
+            public void gvtRenderingCompleted(GVTTreeRendererEvent e) {
+
+            }
+
+            @Override
+            public void gvtRenderingCancelled(GVTTreeRendererEvent e) {
+
+            }
+
+            @Override
+            public void gvtRenderingFailed(GVTTreeRendererEvent e) {
+
+            }
+        });
+        */
         this.canvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
     }
 
+    private JPanel setUpAnimationControlPanel() {
+
+        JPanel actionsPanel = new JPanel(new FlowLayout());
+        Border border = new TitledBorder("Animation Control");
+        actionsPanel.setBorder(border);
+        JSlider slider = createAnimationSlider();
+        actionsPanel.add(createAnimationPauseButton(slider)); //button to the left
+        actionsPanel.add(slider); //slider to the right
+        return actionsPanel;
+    }
+
+    private JButton createAnimationPauseButton(JSlider animationSlider){
+        //initial state is "running", so set it to show that user can pause
+        JButton pauseButton = new JButton(pauseIcon);
+
+        //Image img = ImageIO.read(getClass().getResource("./src/ressources/icons/playIcon.png"));
+        //pauseButton.setIcon(img);
+
+        pauseButton.addActionListener(actionEvent -> {
+            if (isDocInUse()) {
+
+                    canvas.getUpdateManager().getUpdateRunnableQueue().invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            SvgGenerator.pause(doc);
+                        }
+                    });
+                /*catch (InterruptedException e) { // run method is synchronized, so its either all or nothing
+                    e.printStackTrace();
+                }*/
+                //flip and  reflect change
+                isPaused = !isPaused;
+                if (isPaused) { // now paused
+                    statusLabel.setText("doc paused");
+                    pauseButton.setIcon(playIcon);
+
+                    //update slider to show current animation progress
+                    float time = SvgGenerator.getAnimationTime(doc);
+
+                    //inclusive on both end-> +1
+                    int numberOfValues = (animationSlider.getMaximum() -animationSlider.getMinimum()) +1;
+                    logger.warn("time:" + time + ", numberOfvalues" + numberOfValues);
+                    animationSlider.setValue(Math.round(time * numberOfValues));
+                }
+                if (!isPaused) { //was just set if to paused
+                    statusLabel.setText("doc resumed");
+                    pauseButton.setIcon(pauseIcon);
+                }
+
+            } else {
+                statusLabel.setText("no doc on canvas");
+            }
+        });
+        return pauseButton;
+    }
+
+    private JSlider createAnimationSlider(){
+        int precision = 1000; // states the slider has, mapped to [0,1) intervall later for animation state
+        JSlider slider = new JSlider(SwingConstants.HORIZONTAL, 0, precision, 0); //slider start at start of animation
+        slider.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+
+                logger.trace("changed time to" + slider.getValue());
+                //canvas.getUpdateManager().getBridgeContext()
+                if (isDocInUse()) {
+                    float time = ((float) slider.getValue()) / precision;
+                    canvas.getUpdateManager().getUpdateRunnableQueue().invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            SvgGenerator.setAnimationTime(doc, time);
+                        }
+                    });
+                } else {
+                    statusLabel.setText("no doc on canvas");
+                }
+
+            }
+        });
+        return slider;
+    }
     private JPanel setUpRunPanel() {
         JPanel actionsPanel = new JPanel(new FlowLayout());
         Border border = new TitledBorder("Run");
         actionsPanel.setBorder(border);
+
         JButton saveButton = new JButton("Save");
         saveButton.addActionListener(actionEvent -> {
-            logger.trace("saving file");
-            if (this.doc != null) {
+            if (docInUse) {
+                logger.trace("saving file");
                 saveDocument(this.doc);
             }
         });
@@ -712,13 +835,14 @@ public class MainFrame extends JFrame {
         // Create an instance of the SVG Generator.
         SVGGraphics2D svgGenerator = new SVGGraphics2D(doc);
         Instant currentTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        logger.trace("save as " +currentTime.toString());
+        logger.trace("save as " + currentTime.toString());
         try {
             String filePath = this.defaultSavePath + currentTime.toString() + ".svg";
             logger.trace(filePath);
             FileOutputStream fos = new FileOutputStream(filePath);
             Writer out = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
             svgGenerator.stream(doc.getDocumentElement(), out, false, false);
+            statusLabel.setText("saved as " + filePath);
         } catch (FileNotFoundException | SVGGraphics2DIOException e) {
             logger.warn(e.getMessage());
             e.printStackTrace();
