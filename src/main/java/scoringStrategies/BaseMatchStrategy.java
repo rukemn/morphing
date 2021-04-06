@@ -2,6 +2,7 @@ package scoringStrategies;
 
 import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
+import morph.MatrixElement;
 import org.locationtech.jts.geom.Coordinate;
 
 /**
@@ -19,19 +20,19 @@ public class BaseMatchStrategy implements OctiMatchStrategy {
     }
 
     @Override
-    public double match(OctiLineSegment sourceSegment, OctiLineSegment targetSegment){
+    public double match(MatrixElement previous, OctiLineSegment sourceSegment, OctiLineSegment targetSegment){
         return (sourceSegment.p0.distance(targetSegment.p0) + sourceSegment.p1.distance(targetSegment.p1)) / MATCH_DIVISOR;
     }
 
     @Override
-    public double deleteOnto(OctiLineSegment segmentToBeDeleted, Coordinate point){
+    public double deleteOnto(MatrixElement previous,OctiLineSegment segmentToBeDeleted, Coordinate point){
         double score = segmentToBeDeleted.p0.distance(point) + segmentToBeDeleted.p1.distance(point);
         score += segmentToBeDeleted.getLength();
         return score;
     }
 
     @Override
-    public double createFrom(Coordinate creationPoint, OctiLineSegment segmentToBeCreated){
+    public double createFrom(MatrixElement previous,Coordinate creationPoint, OctiLineSegment segmentToBeCreated){
         double score =  creationPoint.distance(segmentToBeCreated.p0)
                 + creationPoint.distance(segmentToBeCreated.p1);
         score += segmentToBeCreated.getLength();

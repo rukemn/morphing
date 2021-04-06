@@ -15,8 +15,7 @@ import org.locationtech.jts.geom.LineString;
 import org.twak.utils.Pair;
 import scoringStrategies.BaseMatchStrategy;
 import scoringStrategies.OctiMatchStrategy;
-import scoringStrategies.ScoringStrategyFactory;
-import scoringStrategies.VisibilityMatchStrategy;
+import scoringStrategies.CompleteVisibleDecorator;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -42,7 +41,7 @@ public class OctiLineMatcher {
     //whether source and target should be swapped after invoking the constructor
     public boolean sourceAndTargetSwapped = false;
 
-    private double[][][] scores;
+    private MatrixElement[][] objectScores;
 
     public static void main(String[] args) {
         String svgPath;
@@ -75,7 +74,7 @@ public class OctiLineMatcher {
             return;
         }
 
-        OctiLineSegment.setStrategy(new VisibilityMatchStrategy(new BaseMatchStrategy()), src, tar);
+        OctiLineSegment.setStrategy(new CompleteVisibleDecorator(new BaseMatchStrategy()), src, tar);
         OctiLineMatcher matcher = new OctiLineMatcher(src, tar);
 
         try {
@@ -209,16 +208,23 @@ public class OctiLineMatcher {
     public double getEndScore() throws NoMinimumOperationException {
         int bestOperation = 0;
         try {
-            bestOperation = minimumOperation(scores[source.size()][target.size()][MATCH],
-                    scores[source.size()][target.size()][DELETE],
-                    scores[source.size()][target.size()][INSERT]);
+            bestOperation = minimumOperation(objectScores[source.size()][target.size()].matchScore,
+                    objectScores[source.size()][target.size()].deleteScore,
+                    objectScores[source.size()][target.size()].insertScore);
         } catch (NoMinimumOperationException e) {
             logger.info("No valid match possible");
             throw e;
         }
 
-        logger.info("best match Score: " + scores[source.size()][target.size()][bestOperation]);
-        return scores[source.size()][target.size()][bestOperation];
+        //logger.info("best match Score: " + objectScores[source.size()][target.size()]);
+        if(bestOperation == MATCH){
+            return objectScores[source.size()][target.size()].matchScore;
+        } else if(bestOperation == DELETE){
+            return objectScores[source.size()][target.size()].deleteScore;
+        }else{ //if(bestOperation == INSERT)
+            return objectScores[source.size()][target.size()].insertScore;
+        }
+
     }
 
     /** Backtracks the Double array to determine which path led to the best score
@@ -234,15 +240,17 @@ public class OctiLineMatcher {
         int targetIndex = target.size();
 
         int opIndex;
+
         try {
             opIndex = minimumOperation(
-                    scores[sourceIndex][targetIndex][MATCH],
-                    scores[sourceIndex][targetIndex][DELETE],
-                    scores[sourceIndex][targetIndex][INSERT]);
+                    objectScores[sourceIndex][targetIndex].matchScore,
+                    objectScores[sourceIndex][targetIndex].deleteScore,
+                    objectScores[sourceIndex][targetIndex].insertScore);
         } catch (NoMinimumOperationException e) {
             logger.warn("could not backtrack, no valid match found");
             throw e;
         }
+
         OctiSegmentAlignment.Operation op = translate(opIndex);
 
         Pair<Integer, Integer> position = new Pair<>(sourceIndex, targetIndex);
@@ -252,16 +260,19 @@ public class OctiLineMatcher {
         while ((sourceIndex != 0 || targetIndex != 0)) {
             switch (opIndex) {
                 case MATCH:
-                    opIndex = (int) scores[sourceIndex][targetIndex][opIndex + 3];  // i was match, and to get here OP was used
+                    //opIndex = (int) scores[sourceIndex][targetIndex][opIndex + 3];  // i was match, and to get here OP was used
+                    opIndex = (int) objectScores[sourceIndex][targetIndex].matchOriginOp;
                     sourceIndex -= 1;
                     targetIndex -= 1;
                     break;
                 case DELETE:
-                    opIndex = (int) scores[sourceIndex][targetIndex][opIndex + 3];
+                    //opIndex = (int) scores[sourceIndex][targetIndex][opIndex + 3];
+                    opIndex = (int) objectScores[sourceIndex][targetIndex].deleteOriginOp;
                     sourceIndex -= 1;
                     break;
                 case INSERT:
-                    opIndex = (int) scores[sourceIndex][targetIndex][opIndex + 3];
+                    //opIndex = (int) scores[sourceIndex][targetIndex][opIndex + 3];
+                    opIndex = (int) objectScores[sourceIndex][targetIndex].insertOriginOp;
                     targetIndex -= 1;
                     break;
                 default:
@@ -273,6 +284,7 @@ public class OctiLineMatcher {
 
             position = new Pair<>(sourceIndex, targetIndex);
             move = new Pair<>(position, op);
+
             moves.add(move);
         }
 
@@ -280,7 +292,54 @@ public class OctiLineMatcher {
         for (Pair<Pair<Integer, Integer>, OctiSegmentAlignment.Operation> m : moves) {
             logger.trace("To get to (" + m.first().first() + "," + m.first().second()+") -> " + m.second().name());
         }
-        return moves;
+////////////////////////////////////////////
+        List<Pair<Pair<Integer, Integer>, OctiSegmentAlignment.Operation>> moves2 = new ArrayList<>();
+        sourceIndex = source.size();
+        targetIndex = target.size();
+        MatrixElement el = objectScores[sourceIndex][targetIndex];
+        OctiSegmentAlignment.Operation bestOperation = el.minOperation;
+
+        while (bestOperation!= null){
+            el = el.getBestPreviousElement(); // there is a prev el so get it
+            moves2.add(new Pair<>(new Pair<>(sourceIndex,targetIndex),bestOperation));
+            switch ( bestOperation){
+                case Match:
+                    sourceIndex--;targetIndex--;
+                    break;
+                case Delete:
+                    sourceIndex--;
+                    break;
+                case Insert:
+                    targetIndex--;
+                    break;
+            }
+            bestOperation = el.minOperation; // setup to check if there is a prev el
+
+        }
+        if(el.equals(objectScores[0][0])){
+            moves2.add(new Pair<>(new Pair<>(0,0), OctiSegmentAlignment.Operation.Match));
+            logger.trace("arrived at start");
+        }else{
+            logger.trace("cant backtrace");
+        }
+        //bestOperation is null
+        logger.trace("src index" + sourceIndex + " tar index " + targetIndex);
+        logger.trace("object without prev: " + el);
+
+        Collections.reverse(moves2);
+        for (Pair<Pair<Integer, Integer>, OctiSegmentAlignment.Operation> m : moves2) {
+            logger.trace("To get to (" + m.first().first() + "," + m.first().second()+") -> " + m.second().name());
+        }
+        boolean same = true;
+        for(int i = 0; i< moves.size();i++){
+            Pair<Pair<Integer, Integer>, OctiSegmentAlignment.Operation> m = moves.get(i);
+            Pair<Pair<Integer, Integer>, OctiSegmentAlignment.Operation> m2 = moves2.get(i);
+            if(m.first().first() != m2.first().first() || m.first().second() != m2.first().second() || m.second().name() != m2.second().name()){
+                same= false;
+            }
+        }
+        logger.trace("same: " + same);
+        return moves2;
     }
 
     /**
@@ -321,56 +380,74 @@ public class OctiLineMatcher {
      */
     private void initBoard() {
         logger.info("init Board");
-        scores = new double[source.size() + 1][target.size() + 1][6];
+        objectScores = new MatrixElement[source.size() +1][target.size() +1];
 
-        scores[0][0][MATCH] = 0.0; //arbitrarily set to 0, must only conform to < IMPOSSIBLE
-        scores[0][0][INSERT] = IMPOSSIBLE;
-        scores[0][0][DELETE] = IMPOSSIBLE;
+        objectScores[0][0] = new MatrixElement();
+        objectScores[0][0].matchScore = 0.0;
+        objectScores[0][0].insertScore = IMPOSSIBLE;
+        objectScores[0][0].deleteScore = IMPOSSIBLE;
 
         //there's no origin for the origin
-        scores[0][0][MATCH_ORIGIN_OP] = IMPOSSIBLE;
-        scores[0][0][DELETE_ORIGIN_OP] = IMPOSSIBLE;
-        scores[0][0][INSERT_ORIGIN_OP] = IMPOSSIBLE;
+        objectScores[0][0].matchOriginOp = IMPOSSIBLE;
+        objectScores[0][0].deleteOriginOp = IMPOSSIBLE;
+        objectScores[0][0].insertOriginOp = IMPOSSIBLE;
 
         for (int i = 1; i <= source.size(); i++) {
-            scores[i][0][MATCH] = IMPOSSIBLE;
-            scores[i][0][INSERT] = IMPOSSIBLE;
-            scores[i][0][MATCH_ORIGIN_OP] = IMPOSSIBLE;
-            scores[i][0][INSERT_ORIGIN_OP] = IMPOSSIBLE;
+            objectScores[i][0] = new MatrixElement();
+            objectScores[i][0].matchScore = IMPOSSIBLE;
+            objectScores[i][0].insertScore = IMPOSSIBLE;
+            objectScores[i][0].matchOriginOp = IMPOSSIBLE;
+            objectScores[i][0].insertOriginOp = IMPOSSIBLE;
 
             // calc DELETE costs
             OctiLineSegment sourceSegment = source.getSegmentBeforeNthPoint(i);
             Coordinate targetStartPoint = target.getCoordinateN(0);
             if (i == 1) {
-                scores[i][0][DELETE] = OctiLineSegment.deleteOnto(sourceSegment, targetStartPoint);
-                scores[i][0][DELETE_ORIGIN_OP] = MATCH;
+                objectScores[i][0].deleteScore = OctiLineSegment.deleteOnto(objectScores[i-1][0],sourceSegment, targetStartPoint);
+                objectScores[i][0].deleteOriginOp = MATCH;
             } else {
-                //origin can only be a delete operation
-                scores[i][0][DELETE] = scores[i - 1][0][DELETE] + OctiLineSegment.deleteOnto(sourceSegment, targetStartPoint);
+
+                objectScores[i][0].deleteScore = objectScores[i-1][0].deleteScore + OctiLineSegment.deleteOnto(objectScores[i-1][0], sourceSegment, targetStartPoint);
                 //make backtracking possible only if the previous deletion wasn't already impossible
-                scores[i][0][DELETE_ORIGIN_OP] = (scores[i - 1][0][DELETE] == IMPOSSIBLE) ? IMPOSSIBLE : DELETE;
-
+                if(objectScores[i][0].deleteScore != IMPOSSIBLE && objectScores[i-1][0].deleteScore != IMPOSSIBLE){
+                    objectScores[i][0].deleteOriginOp = DELETE;
+                }else{
+                    objectScores[i][0].deleteOriginOp = IMPOSSIBLE;
+                }
             }
-
+            if(objectScores[i][0].deleteScore != IMPOSSIBLE) {
+                objectScores[i][0].minOperation = OctiSegmentAlignment.Operation.Delete;
+                objectScores[i][0].setPrevious(objectScores[i-1][0], OctiSegmentAlignment.Operation.Delete);
+            }
         }
         for (int j = 1; j <= target.size(); j++) {
-            scores[0][j][MATCH] = IMPOSSIBLE;
-            scores[0][j][DELETE] = IMPOSSIBLE;
-            scores[0][j][MATCH_ORIGIN_OP] = IMPOSSIBLE;
-            scores[0][j][DELETE_ORIGIN_OP] = IMPOSSIBLE;
+            objectScores[0][j] = new MatrixElement();
+            objectScores[0][j].matchScore = IMPOSSIBLE;
+            objectScores[0][j].deleteScore = IMPOSSIBLE;
+            objectScores[0][j].matchOriginOp = IMPOSSIBLE;
+            objectScores[0][j].deleteOriginOp = IMPOSSIBLE;
 
             // calc INSERT costs
             OctiLineSegment targetSegment = target.getSegmentBeforeNthPoint(j);
             Coordinate sourceStartPoint = source.getCoordinateN(0);
 
             if (j == 1) {
-                scores[0][j][INSERT] = OctiLineSegment.createFrom(sourceStartPoint, targetSegment);
-                scores[0][j][INSERT_ORIGIN_OP] = MATCH;
+                objectScores[0][j].insertScore = OctiLineSegment.createFrom(objectScores[0][j-1],sourceStartPoint, targetSegment);
+                objectScores[0][j].insertOriginOp = MATCH;
             } else {
                 //origin can only be an insert operation
-                scores[0][j][INSERT] = scores[0][j - 1][INSERT] + OctiLineSegment.createFrom(sourceStartPoint, targetSegment);
+                objectScores[0][j].insertScore = objectScores[0][j -1].insertScore + OctiLineSegment.createFrom(objectScores[0][j-1],sourceStartPoint, targetSegment);
+
                 //make backtracking possible only if the previous insertion wasn't already impossible
-                scores[0][j][INSERT_ORIGIN_OP] = (scores[0][j - 1][INSERT] == IMPOSSIBLE) ? IMPOSSIBLE : INSERT;
+                if(objectScores[0][j - 1].insertScore != IMPOSSIBLE && objectScores[0][j].insertScore != IMPOSSIBLE){
+                    objectScores[0][j].insertOriginOp = INSERT;
+                }else{
+                    objectScores[0][j].insertOriginOp =IMPOSSIBLE;
+                }
+            }
+            if(objectScores[0][j].insertScore != IMPOSSIBLE) {
+                objectScores[0][j].minOperation = OctiSegmentAlignment.Operation.Insert;
+                objectScores[0][j].setPrevious(objectScores[0][j-1], OctiSegmentAlignment.Operation.Insert);
             }
         }
     }
@@ -381,32 +458,90 @@ public class OctiLineMatcher {
      */
     private void iterateBoard() {
         logger.info("iterating board");
-        int smallerDiag = Math.min(scores.length, scores[0].length);
+        //int smallerDiag = Math.min(scores.length, scores[0].length);
+        int smallerDiag = Math.min(objectScores.length, objectScores[0].length);
+        MatrixElement previous = null;
         for (int diagonalIndex = 1; diagonalIndex < smallerDiag; diagonalIndex++) {
-
             //diagonal elements
             logger.trace("calculating (" + diagonalIndex + ", " + diagonalIndex + ")");
-            scores[diagonalIndex][diagonalIndex][MATCH] = calcMatchingScore(diagonalIndex, diagonalIndex);
-            scores[diagonalIndex][diagonalIndex][DELETE] = calcDeletionScore(diagonalIndex, diagonalIndex);
-            scores[diagonalIndex][diagonalIndex][INSERT] = calcInsertionScore(diagonalIndex, diagonalIndex);
+            objectScores[diagonalIndex][diagonalIndex] = new MatrixElement();
 
+            objectScores[diagonalIndex][diagonalIndex].matchScore = calcMatchingScore(diagonalIndex,diagonalIndex);
+            objectScores[diagonalIndex][diagonalIndex].deleteScore = calcDeletionScore(diagonalIndex,diagonalIndex);
+            objectScores[diagonalIndex][diagonalIndex].insertScore = calcInsertionScore(diagonalIndex,diagonalIndex);
+            objectScores[diagonalIndex][diagonalIndex].setMinimumOperation();
+            if(objectScores[diagonalIndex][diagonalIndex].minOperation!= null) {
+                switch (objectScores[diagonalIndex][diagonalIndex].minOperation) {
+                    case Match:
+                        previous = objectScores[diagonalIndex - 1][diagonalIndex - 1];
+                        break;
+                    case Delete:
+                        previous = objectScores[diagonalIndex - 1][diagonalIndex];
+                        break;
+                    case Insert:
+                        previous = objectScores[diagonalIndex][diagonalIndex - 1];
+                        break;
+                    default:
+                        previous = null;
+                }
+                objectScores[diagonalIndex][diagonalIndex].setPrevious(previous, objectScores[diagonalIndex][diagonalIndex].minOperation);
+            }
 
             //fill rows starting from diagonal line
-            for (int columnIndex = diagonalIndex + 1; columnIndex < scores.length; columnIndex++) {
+            for (int columnIndex = diagonalIndex + 1; columnIndex < objectScores.length; columnIndex++) {
                 logger.trace("calculating (" + columnIndex + ", " + diagonalIndex + ")");
-                scores[columnIndex][diagonalIndex][MATCH] = calcMatchingScore(columnIndex, diagonalIndex);
-                scores[columnIndex][diagonalIndex][DELETE] = calcDeletionScore(columnIndex, diagonalIndex);
-                scores[columnIndex][diagonalIndex][INSERT] = calcInsertionScore(columnIndex, diagonalIndex);
+                objectScores[columnIndex][diagonalIndex] = new MatrixElement();
+
+                objectScores[columnIndex][diagonalIndex].matchScore = calcMatchingScore(columnIndex,diagonalIndex);
+                objectScores[columnIndex][diagonalIndex].deleteScore = calcDeletionScore(columnIndex,diagonalIndex);
+                objectScores[columnIndex][diagonalIndex].insertScore = calcInsertionScore(columnIndex,diagonalIndex);
+                objectScores[columnIndex][diagonalIndex].setMinimumOperation();
+                if(objectScores[columnIndex][diagonalIndex].minOperation!= null){
+                    switch (objectScores[columnIndex][diagonalIndex].minOperation){
+                        case Match:
+                            previous = objectScores[columnIndex-1][diagonalIndex-1];
+                            break;
+                        case Delete:
+                            previous = objectScores[columnIndex-1][diagonalIndex];
+                            break;
+                        case Insert:
+                            previous = objectScores[columnIndex][diagonalIndex-1];
+                            break;
+                        default:
+                            previous = null;
+                    }
+                    objectScores[columnIndex][diagonalIndex].setPrevious(previous, objectScores[columnIndex][diagonalIndex].minOperation);
+                }
             }
             //fill colums starting from diagonal line
-            for (int rowIndex = diagonalIndex + 1; rowIndex < scores[0].length; rowIndex++) {
+            for (int rowIndex = diagonalIndex + 1; rowIndex < objectScores[0].length; rowIndex++) {
                 logger.trace("calculating (" + diagonalIndex + ", " + rowIndex + ")");
-                scores[diagonalIndex][rowIndex][MATCH] = calcMatchingScore(diagonalIndex, rowIndex);
-                scores[diagonalIndex][rowIndex][DELETE] = calcDeletionScore(diagonalIndex, rowIndex);
-                scores[diagonalIndex][rowIndex][INSERT] = calcInsertionScore(diagonalIndex, rowIndex);
+                objectScores[diagonalIndex][rowIndex] = new MatrixElement();
+
+                objectScores[diagonalIndex][rowIndex].matchScore = calcMatchingScore(diagonalIndex,rowIndex);
+                objectScores[diagonalIndex][rowIndex].deleteScore = calcDeletionScore(diagonalIndex,rowIndex);
+                objectScores[diagonalIndex][rowIndex].insertScore = calcInsertionScore(diagonalIndex,rowIndex);
+                objectScores[diagonalIndex][rowIndex].setMinimumOperation();
+                if(objectScores[diagonalIndex][rowIndex].minOperation!= null) {
+                    switch (objectScores[diagonalIndex][rowIndex].minOperation) {
+                        case Match:
+                            previous = objectScores[diagonalIndex - 1][rowIndex - 1];
+                            break;
+                        case Delete:
+                            previous = objectScores[diagonalIndex - 1][rowIndex];
+                            break;
+                        case Insert:
+                            previous = objectScores[diagonalIndex][rowIndex - 1];
+                            break;
+                        default:
+                            previous = null;
+                    }
+                    objectScores[diagonalIndex][rowIndex].setPrevious(previous, objectScores[diagonalIndex][rowIndex].minOperation);
+                }
             }
         }
     }
+
 
     /**
      * calculates the score for the case that the OctiLineStrings end in the
@@ -425,20 +560,18 @@ public class OctiLineMatcher {
         logger.trace("checking segments " + sourceIndex + " (" + sourceOrientaion + ") and " + targetIndex + " (" + targetOrientaion + ")");
         if (sourceOrientaion != targetOrientaion) return IMPOSSIBLE; // todo factor out into strategy
 
-        double prevMatchScore = scores[sourceIndex - 1][targetIndex - 1][MATCH];
-        double prevDeleteScore = scores[sourceIndex - 1][targetIndex - 1][DELETE];
-        double prevInsertScore = scores[sourceIndex - 1][targetIndex - 1][INSERT];
-
+        double prevMatchScore = objectScores[sourceIndex - 1][targetIndex - 1].matchScore;
+        double prevDeleteScore = objectScores[sourceIndex - 1][targetIndex - 1].deleteScore;
+        double prevInsertScore = objectScores[sourceIndex - 1][targetIndex - 1].insertScore;
         try {
             int bestPreviousOperation = minimumOperation(prevMatchScore, prevDeleteScore, prevInsertScore);
-            scores[sourceIndex][targetIndex][MATCH_ORIGIN_OP] = bestPreviousOperation;
+            objectScores[sourceIndex][targetIndex].matchOriginOp = bestPreviousOperation;
 
-            double bestPreviousOperationScore = scores[sourceIndex - 1][targetIndex - 1][bestPreviousOperation];
-            return bestPreviousOperationScore + OctiLineSegment.match(sourceSegment, targetSegment);
+            double bestPreviousOperationScore = minimumOperationScore(prevMatchScore,prevDeleteScore,prevInsertScore);
+            return bestPreviousOperationScore + OctiLineSegment.match(objectScores[sourceIndex-1][targetIndex-1], sourceSegment,targetSegment);
         } catch (NoMinimumOperationException e) { // all three prev operations were impossible
 
-            scores[sourceIndex][targetIndex][MATCH_ORIGIN_OP] = IMPOSSIBLE;
-            // therefore no need to calc current operation
+            objectScores[sourceIndex][targetIndex].matchOriginOp = IMPOSSIBLE;
             return IMPOSSIBLE;
         }
     }
@@ -452,26 +585,25 @@ public class OctiLineMatcher {
      * @return the calculated score
      */
     private double calcDeletionScore(int sourceIndex, int targetIndex) {
-        double prevMatchScore = scores[sourceIndex - 1][targetIndex][MATCH];
-        double prevDeleteScore = scores[sourceIndex - 1][targetIndex][DELETE];
-        double prevInsertScore = scores[sourceIndex - 1][targetIndex][INSERT];
+        OctiLineSegment sourceSegment = source.getSegmentBeforeNthPoint(sourceIndex);
+        OctiLineSegment targetSegment = target.getSegmentBeforeNthPoint(targetIndex);
+
+        double prevMatchScore = objectScores[sourceIndex - 1][targetIndex].matchScore;
+        double prevDeleteScore = objectScores[sourceIndex - 1][targetIndex].deleteScore;
+        double prevInsertScore = objectScores[sourceIndex - 1][targetIndex].insertScore;
 
         try {
             int bestPreviousOperation = minimumOperation(prevMatchScore, prevDeleteScore, prevInsertScore);
-            scores[sourceIndex][targetIndex][DELETE_ORIGIN_OP] = bestPreviousOperation;
+            objectScores[sourceIndex][targetIndex].deleteOriginOp = bestPreviousOperation;
 
-            double bestPreviousOperationScore = scores[sourceIndex - 1][targetIndex][bestPreviousOperation];
-
-            OctiLineSegment sourceSegment = source.getSegmentBeforeNthPoint(sourceIndex);
-            OctiLineSegment targetSegment = target.getSegmentBeforeNthPoint(targetIndex);
-            return bestPreviousOperationScore + OctiLineSegment.deleteOnto(sourceSegment, targetSegment.p1);
-
+            double bestPreviousOperationScore = minimumOperationScore(prevMatchScore,prevDeleteScore,prevInsertScore);
+            return bestPreviousOperationScore + OctiLineSegment.deleteOnto(objectScores[sourceIndex-1][targetIndex], sourceSegment, targetSegment.p1);
         } catch (NoMinimumOperationException e) { // all three prev operations were impossible
-            scores[sourceIndex][targetIndex][DELETE_ORIGIN_OP] = IMPOSSIBLE;
-
+            objectScores[sourceIndex][targetIndex].deleteOriginOp = IMPOSSIBLE;
             // therefore no need to calc current operation
             return IMPOSSIBLE;
         }
+
     }
 
     /**
@@ -483,22 +615,22 @@ public class OctiLineMatcher {
      * @return the calculated score
      */
     private double calcInsertionScore(int sourceIndex, int targetIndex) {
-        double prevMatchScore = scores[sourceIndex][targetIndex - 1][MATCH];
-        double prevDeleteScore = scores[sourceIndex][targetIndex - 1][DELETE];
-        double prevInsertScore = scores[sourceIndex][targetIndex - 1][INSERT];
+        double prevMatchScore = objectScores[sourceIndex][targetIndex - 1].matchScore;
+        double prevDeleteScore = objectScores[sourceIndex][targetIndex - 1].deleteScore;
+        double prevInsertScore = objectScores[sourceIndex][targetIndex - 1].insertScore;
 
         try {
             int bestPreviousOperation = minimumOperation(prevMatchScore, prevDeleteScore, prevInsertScore);
-            scores[sourceIndex][targetIndex][INSERT_ORIGIN_OP] = bestPreviousOperation;
+            objectScores[sourceIndex][targetIndex].insertOriginOp = bestPreviousOperation;
 
-            double bestPreviousOperationScore = scores[sourceIndex][targetIndex - 1][bestPreviousOperation];
+            double bestPreviousOperationScore = minimumOperationScore(prevMatchScore,prevDeleteScore,prevInsertScore);
 
             OctiLineSegment sourceSegment = source.getSegmentBeforeNthPoint(sourceIndex);
             OctiLineSegment targetSegment = target.getSegmentBeforeNthPoint(targetIndex);
-            return bestPreviousOperationScore + OctiLineSegment.createFrom(sourceSegment.p1, targetSegment);
+            return bestPreviousOperationScore + OctiLineSegment.createFrom(objectScores[sourceIndex][targetIndex-1], sourceSegment.p1, targetSegment);
 
         } catch (NoMinimumOperationException e) {// all three prev operations were impossible
-            scores[sourceIndex][targetIndex][INSERT_ORIGIN_OP] = IMPOSSIBLE;
+            objectScores[sourceIndex][targetIndex].insertOriginOp = IMPOSSIBLE;
 
             // therefore no need to calc current operation
             return IMPOSSIBLE;
@@ -507,7 +639,7 @@ public class OctiLineMatcher {
 
     /**
      * Helper function, returning the index (0-indexed) of the input parameter corresponding to the best Score
-     *
+     * if Equal MATCH < INSERT < DELETE
      * @param matchScore  score corresponding to MATCH (=0)
      * @param deleteScore score corresponding to DELETE (=1)
      * @param insertScore score corresponding to INSERT (=2)
@@ -515,12 +647,22 @@ public class OctiLineMatcher {
      */
     public int minimumOperation(double matchScore, double deleteScore, double insertScore) throws NoMinimumOperationException {
         if (deleteScore < matchScore) {
-            if (insertScore < deleteScore) return INSERT;
-            return DELETE;
+            if ( deleteScore < insertScore ) return DELETE;
+            return INSERT;
         }
         if (insertScore < matchScore) return INSERT;
-        if (matchScore == Double.POSITIVE_INFINITY) throw new NoMinimumOperationException(); // all params are +inf
+        if (matchScore == IMPOSSIBLE) throw new NoMinimumOperationException(); // all params are +inf
         return MATCH;
+    }
+
+    public double minimumOperationScore(double matchScore, double deleteScore, double insertScore) throws NoMinimumOperationException {
+        if (deleteScore < matchScore) {
+            if (deleteScore < insertScore) return deleteScore;
+            return insertScore;
+        }
+        if (insertScore < matchScore) return insertScore;
+        if (matchScore == IMPOSSIBLE) throw new NoMinimumOperationException();
+        return matchScore;
     }
 
 }

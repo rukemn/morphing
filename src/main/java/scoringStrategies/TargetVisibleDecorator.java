@@ -3,6 +3,7 @@ package scoringStrategies;
 import jtsadaptions.OctiGeometryFactory;
 import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
+import morph.MatrixElement;
 import morph.OctiLineMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,13 +16,13 @@ import org.twak.utils.Pair;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TargetVisibleStrategy extends StrategyDecorator {
+public class TargetVisibleDecorator extends StrategyDecorator {
     private OctiLineString source;
     private OctiLineString target;
     private static Logger logger = LogManager.getLogger();
     public final Map<Pair<Coordinate,Coordinate>, Boolean> visibilityMap = new HashMap<>();
 
-    public TargetVisibleStrategy(OctiMatchStrategy underlyingStrategy) {
+    public TargetVisibleDecorator(OctiMatchStrategy underlyingStrategy) {
         super(underlyingStrategy);
         logger.trace("target visible strategy");
     }
@@ -51,12 +52,13 @@ public class TargetVisibleStrategy extends StrategyDecorator {
 
     @Override
     public void initStrategy(OctiLineString sourceString, OctiLineString targetString) {
+        underlyingStrategy.initStrategy(sourceString, targetString);
         source = sourceString;
         target = targetString;
     }
 
     @Override
-    public double match(OctiLineSegment sourceSegment, OctiLineSegment targetSegment){
+    public double match(MatrixElement previous, OctiLineSegment sourceSegment, OctiLineSegment targetSegment){
         if(sourceSegment.getOrientation() != targetSegment.getOrientation()) logger.error("match operation called with non-matching octisegments");
         boolean startVisible = checkVisible(sourceSegment.p0,targetSegment.p0);
         boolean endVisible = checkVisible(sourceSegment.p1, targetSegment.p1);
@@ -64,11 +66,11 @@ public class TargetVisibleStrategy extends StrategyDecorator {
             logger.info("visibility constraint not met");
             return OctiLineMatcher.IMPOSSIBLE;
         }
-        return underlyingStrategy.match(sourceSegment,targetSegment);
+        return underlyingStrategy.match(previous,sourceSegment,targetSegment);
     }
 
     @Override
-    public double deleteOnto(OctiLineSegment segmentToBeDeleted, Coordinate point){
+    public double deleteOnto(MatrixElement previous,OctiLineSegment segmentToBeDeleted, Coordinate point){
 
         boolean startVisible = checkVisible(segmentToBeDeleted.p0,point);
         boolean endVisible = checkVisible(segmentToBeDeleted.p1, point);
@@ -76,17 +78,17 @@ public class TargetVisibleStrategy extends StrategyDecorator {
             logger.info("visibility constraint not met");
             return OctiLineMatcher.IMPOSSIBLE;
         }
-        return underlyingStrategy.deleteOnto(segmentToBeDeleted,point);
+        return underlyingStrategy.deleteOnto(previous,segmentToBeDeleted,point);
     }
 
     @Override
-    public double createFrom(Coordinate creationPoint, OctiLineSegment segmentToBeCreated){
+    public double createFrom(MatrixElement previous,Coordinate creationPoint, OctiLineSegment segmentToBeCreated){
         boolean startVisible = checkVisible(creationPoint,segmentToBeCreated.p0);
         boolean endVisible = checkVisible(creationPoint, segmentToBeCreated.p1);
         if(! (startVisible && endVisible)) {
             logger.info("visibility constraint not met");
             return OctiLineMatcher.IMPOSSIBLE;
         }
-        return underlyingStrategy.createFrom(creationPoint,segmentToBeCreated);
+        return underlyingStrategy.createFrom(previous,creationPoint,segmentToBeCreated);
     }
 }

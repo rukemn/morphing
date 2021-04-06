@@ -6,7 +6,6 @@ import morph.NoMinimumOperationException;
 import morph.OctiLineMatcher;
 import morph.OctiStringAlignment;
 
-import org.apache.batik.anim.dom.SVGOMDocument;
 import org.apache.batik.svggen.SVGGraphics2D;
 import org.apache.batik.svggen.SVGGraphics2DIOException;
 import org.apache.batik.swing.JSVGCanvas;
@@ -26,7 +25,6 @@ import scoringStrategies.ScoringStrategyFactory;
 import scoringStrategies.StrategyInitializationException;
 
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
@@ -44,6 +42,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+
 //todo have Stringbuilder for messages for each "user story", after comletion display in statuslabel
 public class MainFrame extends JFrame {
     private static final Logger logger = LogManager.getLogger();
@@ -66,6 +65,8 @@ public class MainFrame extends JFrame {
     private boolean isPaused = false;
     private final Icon playIcon = new ImageIcon("./src/main/resources/icons/playIcon.png");
     private final Icon pauseIcon = new ImageIcon("./src/main/resources/icons/pauseIcon.png");
+    private JButton pauseButton;
+    private JSlider animationProgressSlider;
 
     private JCheckBox twoInputFilesCheckbox;
     private JButton loadSourceFileButton;
@@ -76,6 +77,7 @@ public class MainFrame extends JFrame {
     private String defaultSavePath = "./src/main/resources/saves/";
 
     private JComboBox<String> strategyPicker;
+    private JComboBox<String> decoratorPicker;
     private JComboBox<String> visibilityPicker;
     private JComboBox<String> polyDistancePicker;
 
@@ -83,7 +85,7 @@ public class MainFrame extends JFrame {
     private JCheckBox showSourceCheckBox;
     private JCheckBox showTargetCheckBox;
 
-    private JLabel statusLabel;
+    private JLabel statusLabel= new JLabel("status here");
     private JButton saveButton;
     private JButton runButton;
 
@@ -260,7 +262,6 @@ public class MainFrame extends JFrame {
         JPanel statusPanel = new JPanel();
         TitledBorder title = new TitledBorder("Status");
         statusPanel.setBorder(title);
-        statusLabel = new JLabel("status here");
         statusPanel.add(statusLabel);
         return statusPanel;
     }
@@ -466,18 +467,38 @@ public class MainFrame extends JFrame {
         strategyPanel.add(strategyPicker, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 1;
+        gbc.gridy++;
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(0, 0, 0, 0);
-        JLabel visibilityLabel = new JLabel("Decorator");
+        JLabel decoratorLabel = new JLabel("Decorator");
+        strategyPanel.add(decoratorLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0; //dynamically also here
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(0, 0, 5, 0);
+        String[] strategyDecoratorStrings = ScoringStrategyFactory.getStrategyDecorators().toArray(new String[0]);
+        decoratorPicker = new JComboBox<>(strategyDecoratorStrings);
+        decoratorPicker.addItemListener(itemEvent -> {
+            if (itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
+        });
+
+        strategyPanel.add(decoratorPicker, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        JLabel visibilityLabel = new JLabel("Visibility");
         strategyPanel.add(visibilityLabel, gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 0; //dynamically also here
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 0, 5, 0);
-        String[] visibilityDecoratorStrings = ScoringStrategyFactory.getDecorators().toArray(new String[0]);
+        String[] visibilityDecoratorStrings = ScoringStrategyFactory.getVisibilityDecorators().toArray(new String[0]);
         visibilityPicker = new JComboBox<>(visibilityDecoratorStrings);
         visibilityPicker.addItemListener(itemEvent -> {
             if (itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
@@ -486,7 +507,7 @@ public class MainFrame extends JFrame {
         strategyPanel.add(visibilityPicker, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy++;
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(0, 0, 0, 0);
@@ -568,13 +589,16 @@ public class MainFrame extends JFrame {
      */
     private void setStrategy() {
         String strategyName = (String) this.strategyPicker.getSelectedItem();
-        String decorators = (String) this.visibilityPicker.getSelectedItem();
-        logger.trace("setting base strat to " + strategyName);
-        logger.trace("setting decorators to " + decorators);
-        List<String> decoratorList = new ArrayList<>();
-        decoratorList.add(decorators);
+        String strategyDecorators = (String) this.decoratorPicker.getSelectedItem();
+        String visibilityDecorators = (String) this.visibilityPicker.getSelectedItem();
+        logger.trace("setting strategy decorators to " + strategyDecorators);
+        logger.trace("setting visibility decorators to " + visibilityDecorators);
+        List<String> strategyDecoratorList = new ArrayList<>();
+        strategyDecoratorList.add(strategyDecorators);
+        List<String> visibilityDecoratorList = new ArrayList<>();
+        visibilityDecoratorList.add(visibilityDecorators);
         try {
-            this.conig.setSegmentStrategy(ScoringStrategyFactory.getStrategy(strategyName, decoratorList));
+            this.conig.setSegmentStrategy(ScoringStrategyFactory.getStrategy(strategyName, strategyDecoratorList,visibilityDecoratorList));
         } catch (StrategyInitializationException e) {
             logger.trace("Cant build a strategy from current selection");
             statusLabel.setText("Cant build a strategy from current selection");
@@ -680,7 +704,7 @@ public class MainFrame extends JFrame {
         try {
             stringAlignment = olm.getAlignment();
         } catch (NoMinimumOperationException e) {
-            statusLabel.setText("couldn't calculate alignment");
+            statusLabel.setText("couldn't calculate alignment"); //todo this isnt displayed since doc is resumed
             sb.append("couldn't calculate alignment");
             e.printStackTrace();
             return;
@@ -689,33 +713,6 @@ public class MainFrame extends JFrame {
         SvgGenerator svgGenerator = new SvgGenerator(animtaionConfig);
         this.doc = svgGenerator.generateSVG(stringAlignment);
         this.canvas.setSVGDocument(doc);
-        /*this.canvas.addGVTTreeRendererListener(new GVTTreeRendererListener() {
-            @Override
-            public void gvtRenderingPrepare(GVTTreeRendererEvent e) {
-
-            }
-
-            @Override
-            public void gvtRenderingStarted(GVTTreeRendererEvent e) {
-
-            }
-
-            @Override
-            public void gvtRenderingCompleted(GVTTreeRendererEvent e) {
-
-            }
-
-            @Override
-            public void gvtRenderingCancelled(GVTTreeRendererEvent e) {
-
-            }
-
-            @Override
-            public void gvtRenderingFailed(GVTTreeRendererEvent e) {
-
-            }
-        });
-        */
         this.canvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
     }
 
@@ -725,81 +722,85 @@ public class MainFrame extends JFrame {
         Border border = new TitledBorder("Animation Control");
         actionsPanel.setBorder(border);
         JSlider slider = createAnimationSlider();
-        actionsPanel.add(createAnimationPauseButton(slider)); //button to the left
+        actionsPanel.add(createAnimationPauseButton()); //button to the left
         actionsPanel.add(slider); //slider to the right
         return actionsPanel;
     }
 
-    private JButton createAnimationPauseButton(JSlider animationSlider){
+    /**
+     * Button will manipulate the slider to reflect current animation progress on pause
+     *
+     * @return
+     */
+    private JButton createAnimationPauseButton() {
         //initial state is "running", so set it to show that user can pause
-        JButton pauseButton = new JButton(pauseIcon);
-
-        //Image img = ImageIO.read(getClass().getResource("./src/ressources/icons/playIcon.png"));
-        //pauseButton.setIcon(img);
+        pauseButton = new JButton();
+        setPauseButtonState(isPaused);
 
         pauseButton.addActionListener(actionEvent -> {
-            if (isDocInUse()) {
-
-                    canvas.getUpdateManager().getUpdateRunnableQueue().invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            SvgGenerator.pause(doc);
-                        }
-                    });
-                /*catch (InterruptedException e) { // run method is synchronized, so its either all or nothing
-                    e.printStackTrace();
-                }*/
-                //flip and  reflect change
-                isPaused = !isPaused;
-                if (isPaused) { // now paused
-                    statusLabel.setText("doc paused");
-                    pauseButton.setIcon(playIcon);
-
-                    //update slider to show current animation progress
-                    float time = SvgGenerator.getAnimationTime(doc);
-
-                    //inclusive on both end-> +1
-                    int numberOfValues = (animationSlider.getMaximum() -animationSlider.getMinimum()) +1;
-                    logger.warn("time:" + time + ", numberOfvalues" + numberOfValues);
-                    animationSlider.setValue(Math.round(time * numberOfValues));
-                }
-                if (!isPaused) { //was just set if to paused
-                    statusLabel.setText("doc resumed");
-                    pauseButton.setIcon(pauseIcon);
-                }
-
-            } else {
+            if (!isDocInUse()) {
                 statusLabel.setText("no doc on canvas");
+                return;
             }
+            canvas.getUpdateManager().getUpdateRunnableQueue().invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    SvgGenerator.pause(doc);
+                }
+            });
+            isPaused = !isPaused;
+            setPauseButtonState(isPaused);
         });
         return pauseButton;
     }
 
-    private JSlider createAnimationSlider(){
+    private void setPauseButtonState(boolean newIsPausedState) {
+        if (!newIsPausedState) { // now running
+            statusLabel.setText("doc resumed");
+            pauseButton.setIcon(pauseIcon);
+        }
+        if (newIsPausedState) { // now paused
+            statusLabel.setText("doc paused");
+            pauseButton.setIcon(playIcon);
+
+            //update slider to show current animation progress, time in [0,1)
+            if (docInUse) {
+                float time = SvgGenerator.getAnimationTime(doc);
+
+                //inclusive on both end-> +1
+                int numberOfValues = (animationProgressSlider.getMaximum() - animationProgressSlider.getMinimum()) + 1;
+                logger.trace("time:" + time + ", numberOfvalues" + numberOfValues);
+                animationProgressSlider.setValue(Math.round(time * numberOfValues));
+            }
+        }
+    }
+
+    private JSlider createAnimationSlider() {
         int precision = 1000; // states the slider has, mapped to [0,1) intervall later for animation state
-        JSlider slider = new JSlider(SwingConstants.HORIZONTAL, 0, precision, 0); //slider start at start of animation
-        slider.addChangeListener(new ChangeListener() {
+        animationProgressSlider = new JSlider(SwingConstants.HORIZONTAL, 0, precision, 0); //slider start at start of animation
+        animationProgressSlider.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
 
-                logger.trace("changed time to" + slider.getValue());
-                //canvas.getUpdateManager().getBridgeContext()
-                if (isDocInUse()) {
-                    float time = ((float) slider.getValue()) / precision;
-                    canvas.getUpdateManager().getUpdateRunnableQueue().invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            SvgGenerator.setAnimationTime(doc, time);
-                        }
-                    });
-                } else {
+                logger.trace("changed time to" + animationProgressSlider.getValue());
+                if (!isDocInUse()) {
                     statusLabel.setText("no doc on canvas");
                 }
+                //canvas.getUpdateManager().getBridgeContext()
+
+                float time = ((float) animationProgressSlider.getValue()) / precision;
+                canvas.getUpdateManager().getUpdateRunnableQueue().invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        SvgGenerator.setAnimationTime(doc, time);
+                    }
+                });
 
             }
         });
-        return slider;
+        return animationProgressSlider;
     }
+
     private JPanel setUpRunPanel() {
         JPanel actionsPanel = new JPanel(new FlowLayout());
         Border border = new TitledBorder("Run");
@@ -813,13 +814,16 @@ public class MainFrame extends JFrame {
             }
         });
         actionsPanel.add(saveButton);
-        JButton runButton = new JButton("Run");
+        JButton runButton = new JButton("Calc");
 
         runButton.addActionListener(actionEvent -> {
             statusLabel.setText("");
             try {
                 calcSvg(this.conig);
+                //if no problems, gvtRenderingCompleted-Event sets the docInUse to true
+                if(docInUse) setPauseButtonState(false);
             } catch (Exception e) {
+                e.printStackTrace();
                 logger.warn("couldn't calc svg :" + e.getMessage());
                 statusLabel.setText(e.getMessage());
             }

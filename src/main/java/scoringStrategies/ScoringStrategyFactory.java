@@ -17,25 +17,30 @@ public class ScoringStrategyFactory {
     // switch to entry if theres no more overloaded functions
     private static final Map<String, Supplier<OctiMatchStrategy>> baseStrategyMap = Map.of(
             "BaseMatch", BaseMatchStrategy::new, //ignore any underlying strategy since this is base
-            "Flat Score", FlatScoreStrategy::new
+            "Flat Score", FlatScoreStrategy::new,
+            "Affine Gap", AffineGapStrategy::new
     );
 
     // switch to entry if theres no more overloaded functions
-    private static final Map<String, Function<OctiMatchStrategy, OctiMatchStrategy>> decoratorStrategyMap = Map.of(
-            //"Affine Gap", (underlying) -> new AffineGapStrategy(underlying),
-            // the visibility decorators
+    private static final Map<String, Function<OctiMatchStrategy, OctiMatchStrategy>> strategyDecoratorMap = Map.of(
+            "multiplicative gap cost", (underlying) -> new MultiplicativeGapDecorator(underlying),
+            "none" ,  (underlying) -> new EmptyDecorator(underlying)
+    );
+
+    private static final Map<String, Function<OctiMatchStrategy, OctiMatchStrategy>> visibilityDecoratorMap = Map.of(
             "No Visibility Constraints", (underlying) -> new EmptyDecorator(underlying),
-            "Target Visible", (underlying) -> new TargetVisibleStrategy(underlying),
-            "Completely Visible", (underlying) -> new VisibilityMatchStrategy(underlying)
+            "Target Visible", (underlying) -> new TargetVisibleDecorator(underlying),
+            "Completely Visible", (underlying) -> new CompleteVisibleDecorator(underlying)
     );
 
     /**
      * @param strategyString The Strategy name, the first one beeing the underlying strategy, rest are decorators
-     * @param decorators The List of Strategy decorator names to add on top
+     * @param strategyDecorators The List of Strategy decorator names to add on top
+     * @param visibilityDecorators The List of Visibility decorator names to add on top
      * @return the created Strategy
      * @throws StrategyInitializationException in case no Strategy could be instantiated from the given Strings
      */
-    public static OctiMatchStrategy getStrategy(String strategyString, List<String> decorators) throws StrategyInitializationException {
+    public static OctiMatchStrategy getStrategy(String strategyString, List<String> strategyDecorators, List<String> visibilityDecorators) throws StrategyInitializationException {
         if (strategyString == null ) {
             logger.warn("no strategy supplied");
             throw new StrategyInitializationException("no strategy supplied");
@@ -49,15 +54,26 @@ public class ScoringStrategyFactory {
         }
         OctiMatchStrategy strat = baseInstantiator.get();
 
-        for (String decoratorString : decorators) {
+        for (String decoratorString : strategyDecorators) {
             logger.trace("decorating with " + decoratorString);
-            Function<OctiMatchStrategy,OctiMatchStrategy> decoratorInstantiator = decoratorStrategyMap.get(decoratorString);
+            Function<OctiMatchStrategy,OctiMatchStrategy> decoratorInstantiator = strategyDecoratorMap.get(decoratorString);
             if(decoratorInstantiator == null){
-                logger.warn("no decorator with name " + strategyString + " found.");
-                throw new StrategyInitializationException("no decorator with name " + strategyString + " found.");
+                logger.warn("no strategy decorator with name " + strategyString + " found.");
+                throw new StrategyInitializationException("no strategy decorator with name " + strategyString + " found.");
             }
             strat = decoratorInstantiator.apply(strat);
         }
+        for (String decoratorString : visibilityDecorators) {
+            logger.trace("decorating with " + decoratorString);
+            Function<OctiMatchStrategy,OctiMatchStrategy> decoratorInstantiator = visibilityDecoratorMap.get(decoratorString);
+            if(decoratorInstantiator == null){
+                logger.warn("no visibility decorator with name " + strategyString + " found.");
+                throw new StrategyInitializationException("no visibility decorator with name " + strategyString + " found.");
+            }
+            strat = decoratorInstantiator.apply(strat);
+        }
+
+
         return strat;
     }
 
@@ -68,15 +84,19 @@ public class ScoringStrategyFactory {
         if(instantiator == null) throw new StrategyInitializationException("supplied strategy not found");
 
         //return instantiator.get();
-        return getStrategy(baseStrategyName, new ArrayList<String>());
+        return getStrategy(baseStrategyName, new ArrayList<String>(),  new ArrayList<String>());
     }
 
     public static Set<String> getStrategies(){
         return baseStrategyMap.keySet();
     }
 
-    public static Set<String> getDecorators(){
-        return decoratorStrategyMap.keySet();
+    public static Set<String> getStrategyDecorators(){
+        return strategyDecoratorMap.keySet();
+    }
+
+    public static Set<String> getVisibilityDecorators(){
+        return visibilityDecoratorMap.keySet();
     }
 
 }

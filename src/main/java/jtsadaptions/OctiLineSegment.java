@@ -1,15 +1,19 @@
 package jtsadaptions;
 
+import morph.MatrixElement;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import scoringStrategies.BaseMatchStrategy;
 import scoringStrategies.OctiMatchStrategy;
-import scoringStrategies.VisibilityMatchStrategy;
+import scoringStrategies.CompleteVisibleDecorator;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineSegment;
 
 
 public class OctiLineSegment extends LineSegment implements Octilinear{
+    private static final Logger logger = LogManager.getLogger();
     private Orientation orientation = null;
-    public static OctiMatchStrategy strategy = new VisibilityMatchStrategy(new BaseMatchStrategy());
+    public static OctiMatchStrategy strategy = new CompleteVisibleDecorator(new BaseMatchStrategy());
 
     public enum Orientation {
         UP,
@@ -100,15 +104,17 @@ public class OctiLineSegment extends LineSegment implements Octilinear{
         return determineOrientation(this);
     }
 
-    public static double match(OctiLineSegment segment1, OctiLineSegment segment2){
-        return strategy.match(segment1,segment2);
+    public static double match(MatrixElement previous, OctiLineSegment segment1, OctiLineSegment segment2){
+        return strategy.match(previous,segment1,segment2);
     }
 
-    public static double deleteOnto(OctiLineSegment segmentToBeDeleted, Coordinate point){
-        return strategy.deleteOnto(segmentToBeDeleted,point);
+    public static double deleteOnto(MatrixElement previous, OctiLineSegment segmentToBeDeleted, Coordinate point){
+        logger.trace("deletion row " + previous.deletionsInARow);
+        return strategy.deleteOnto(previous,segmentToBeDeleted,point);
     }
 
-    public static double createFrom(Coordinate creationPoint, OctiLineSegment segmentToBeCreated){
-        return strategy.createFrom(creationPoint, segmentToBeCreated);
+    public static double createFrom(MatrixElement previous, Coordinate creationPoint, OctiLineSegment segmentToBeCreated){
+        logger.trace("creation row " + previous.deletionsInARow);
+        return strategy.createFrom(previous,creationPoint, segmentToBeCreated);
     }
 }

@@ -2,6 +2,7 @@ package scoringStrategies;
 
 import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
+import morph.MatrixElement;
 import org.locationtech.jts.geom.Coordinate;
 
 /**
@@ -9,23 +10,25 @@ import org.locationtech.jts.geom.Coordinate;
  */
 public class FlatScoreStrategy implements OctiMatchStrategy {
 
+    int maximumMatches; // in any given Alignment there is a maximum of matches
+
     @Override
     public void initStrategy(OctiLineString sourceString, OctiLineString targetString) {
-        // no init needed
+        //maximumMatches = Math.min(sourceString.size(),targetString.size());
     }
 
     @Override
-    public double match(OctiLineSegment sourceSegment, OctiLineSegment targetSegment) {
+    public double match(MatrixElement previous, OctiLineSegment sourceSegment, OctiLineSegment targetSegment) {
         return -1;
     }
 
     @Override
-    public double deleteOnto(OctiLineSegment segmentToBeDeleted, Coordinate point) {
+    public double deleteOnto(MatrixElement previous,OctiLineSegment segmentToBeDeleted, Coordinate point) {
         return 1;
     }
 
     @Override
-    public double createFrom(Coordinate creationPoint, OctiLineSegment segmentToBeCreated) {
+    public double createFrom(MatrixElement previous,Coordinate creationPoint, OctiLineSegment segmentToBeCreated) {
         return 1;
     }
 }
