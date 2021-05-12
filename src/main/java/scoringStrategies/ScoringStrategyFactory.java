@@ -1,5 +1,6 @@
 package scoringStrategies;
 
+import morph.NoPreviousPathCrossedDecorator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -30,7 +31,8 @@ public class ScoringStrategyFactory {
     private static final Map<String, Function<OctiMatchStrategy, OctiMatchStrategy>> visibilityDecoratorMap = Map.of(
             "No Visibility Constraints", (underlying) -> new EmptyDecorator(underlying),
             "Target Visible", (underlying) -> new TargetVisibleDecorator(underlying),
-            "Completely Visible", (underlying) -> new CompleteVisibleDecorator(underlying)
+            "Completely Visible", (underlying) -> new CompleteVisibleDecorator(underlying),
+            "No VertexPath Intersect", (underlying) -> new NoPreviousPathCrossedDecorator(underlying)
     );
 
     /**

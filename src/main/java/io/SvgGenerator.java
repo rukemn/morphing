@@ -28,8 +28,7 @@ public class SvgGenerator {
 
     public static class Config {
         public Config(boolean showSource, boolean showTarget, boolean showAnimation,
-                      String sourceColor, String targetColor, String animationColor, String startPointColor) {
-
+                      String sourceColor, String targetColor, String animationColor, String startPointColor, String backgroundColor) {
             this.showSource = showSource;
             this.showTarget = showTarget;
             this.showAnimation = showAnimation;
@@ -37,6 +36,7 @@ public class SvgGenerator {
             this.targetColor = targetColor;
             this.animationColor = animationColor;
             this.startPointColor = startPointColor;
+            this.backgroundColor = backgroundColor;
         }
         public boolean showSource;
         public boolean showTarget;
@@ -45,9 +45,10 @@ public class SvgGenerator {
         public String targetColor;
         public String animationColor;
         public String startPointColor;
+        public String backgroundColor;
     }
 
-    private Config config = new Config(false, false, true, "green", "green", "red", "purple");
+    private Config config = new Config(false, false, true, "green", "green", "red", "purple", "white");
     private static double animationDurationTime = 5;
     private static final Logger logger = LogManager.getLogger();
 
@@ -188,7 +189,7 @@ public class SvgGenerator {
         backgroundRect.setAttributeNS(null, "y", String.valueOf(startY));
         backgroundRect.setAttributeNS(null, "width", "100%");
         backgroundRect.setAttributeNS(null, "height", "100%");
-        if(color != null) backgroundRect.setAttributeNS(null,"fill", "yellow");
+        if(color != null) backgroundRect.setAttributeNS(null,"fill", color);
         doc.getDocumentElement().appendChild(backgroundRect);
 
         doc.getDocumentElement().insertBefore(backgroundRect,doc.getDocumentElement().getFirstChild());
@@ -213,7 +214,7 @@ public class SvgGenerator {
         logger.warn("viewBox: " + viewBoxValue);
         svgRoot.setAttributeNS(null, "viewBox", viewBoxValue);
 
-        setBackgroundColor(doc,"yellow", viewBoxStartX, viewBoxStartY);
+        setBackgroundColor(doc, config.backgroundColor,viewBoxStartX, viewBoxStartY);
         return doc;
     }
 

@@ -43,7 +43,7 @@ public class SvgExporter {
 
     //the svg
     private SVGDocument doc;
-    private final SvgGenerator generator = new SvgGenerator(new SvgGenerator.Config(false, false, true, "green", "blue", "orange", "orange"));
+    private final SvgGenerator generator = new SvgGenerator(new SvgGenerator.Config(false, false, true, "green", "blue", "orange", "orange", "white"));
     private final PolygonExtractorInterface extractor = new PolygonExtractor();
     private final String svgDirectory = "./src/main/resources/";
     private final String defaultSvg = "squareRightBoomerang.svg";

@@ -37,6 +37,9 @@ import java.io.*;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
 import java.util.ArrayList;
@@ -147,7 +150,7 @@ public class MainFrame extends JFrame {
 
     ;
     private MainFrame.Conig conig = new Conig();
-    private SvgGenerator.Config animtaionConfig = new SvgGenerator.Config(false, false, true, "green", "green", "red", "purple");
+    private SvgGenerator.Config animtaionConfig = new SvgGenerator.Config(false, false, true, "green", "blue", "black", "red", "white");
 
     public MainFrame() {
         super("Polygonmorphing");
@@ -714,6 +717,7 @@ public class MainFrame extends JFrame {
         this.doc = svgGenerator.generateSVG(stringAlignment);
         this.canvas.setSVGDocument(doc);
         this.canvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
+        if(docInUse) setPauseButtonState(false);
     }
 
     private JPanel setUpAnimationControlPanel() {
@@ -821,7 +825,7 @@ public class MainFrame extends JFrame {
             try {
                 calcSvg(this.conig);
                 //if no problems, gvtRenderingCompleted-Event sets the docInUse to true
-                if(docInUse) setPauseButtonState(false);
+
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.warn("couldn't calc svg :" + e.getMessage());
@@ -838,17 +842,22 @@ public class MainFrame extends JFrame {
     private void saveDocument(SVGDocument doc) {
         // Create an instance of the SVG Generator.
         SVGGraphics2D svgGenerator = new SVGGraphics2D(doc);
-        Instant currentTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        logger.trace("save as " + currentTime.toString());
+        ZonedDateTime currentTime = Instant.now().truncatedTo(ChronoUnit.SECONDS).atZone(ZoneId.systemDefault());
+        String timeString = DateTimeFormatter.ofPattern("uuuu-MM-dd--HH'h'-mm'm'-ss's'").format(currentTime);
+        logger.trace("save as " + timeString);
         try {
-            String filePath = this.defaultSavePath + currentTime.toString() + ".svg";
+            String filePath = this.defaultSavePath + timeString + ".svg";
             logger.trace(filePath);
             FileOutputStream fos = new FileOutputStream(filePath);
             Writer out = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
             svgGenerator.stream(doc.getDocumentElement(), out, false, false);
             statusLabel.setText("saved as " + filePath);
+            fos.close();
         } catch (FileNotFoundException | SVGGraphics2DIOException e) {
             logger.warn(e.getMessage());
+            e.printStackTrace();
+        } catch (IOException e) {
+            logger.warn("Couldn't close file after saving :" + e.getMessage());
             e.printStackTrace();
         }
     }

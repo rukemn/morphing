@@ -382,7 +382,7 @@ public class OctiLineMatcher {
         logger.info("init Board");
         objectScores = new MatrixElement[source.size() +1][target.size() +1];
 
-        objectScores[0][0] = new MatrixElement();
+        objectScores[0][0] = new MatrixElement(source.getCoordinateN(0),target.getCoordinateN(0));
         objectScores[0][0].matchScore = 0.0;
         objectScores[0][0].insertScore = IMPOSSIBLE;
         objectScores[0][0].deleteScore = IMPOSSIBLE;
@@ -393,7 +393,7 @@ public class OctiLineMatcher {
         objectScores[0][0].insertOriginOp = IMPOSSIBLE;
 
         for (int i = 1; i <= source.size(); i++) {
-            objectScores[i][0] = new MatrixElement();
+            objectScores[i][0] = new MatrixElement(source.getCoordinateN(i), target.getCoordinateN(0));
             objectScores[i][0].matchScore = IMPOSSIBLE;
             objectScores[i][0].insertScore = IMPOSSIBLE;
             objectScores[i][0].matchOriginOp = IMPOSSIBLE;
@@ -421,7 +421,7 @@ public class OctiLineMatcher {
             }
         }
         for (int j = 1; j <= target.size(); j++) {
-            objectScores[0][j] = new MatrixElement();
+            objectScores[0][j] = new MatrixElement(source.getCoordinateN(0), target.getCoordinateN(j));
             objectScores[0][j].matchScore = IMPOSSIBLE;
             objectScores[0][j].deleteScore = IMPOSSIBLE;
             objectScores[0][j].matchOriginOp = IMPOSSIBLE;
@@ -464,7 +464,7 @@ public class OctiLineMatcher {
         for (int diagonalIndex = 1; diagonalIndex < smallerDiag; diagonalIndex++) {
             //diagonal elements
             logger.trace("calculating (" + diagonalIndex + ", " + diagonalIndex + ")");
-            objectScores[diagonalIndex][diagonalIndex] = new MatrixElement();
+            objectScores[diagonalIndex][diagonalIndex] = new MatrixElement(source.getCoordinateN(diagonalIndex), target.getCoordinateN(diagonalIndex));
 
             objectScores[diagonalIndex][diagonalIndex].matchScore = calcMatchingScore(diagonalIndex,diagonalIndex);
             objectScores[diagonalIndex][diagonalIndex].deleteScore = calcDeletionScore(diagonalIndex,diagonalIndex);
@@ -490,7 +490,7 @@ public class OctiLineMatcher {
             //fill rows starting from diagonal line
             for (int columnIndex = diagonalIndex + 1; columnIndex < objectScores.length; columnIndex++) {
                 logger.trace("calculating (" + columnIndex + ", " + diagonalIndex + ")");
-                objectScores[columnIndex][diagonalIndex] = new MatrixElement();
+                objectScores[columnIndex][diagonalIndex] = new MatrixElement(source.getCoordinateN(columnIndex), target.getCoordinateN(diagonalIndex));
 
                 objectScores[columnIndex][diagonalIndex].matchScore = calcMatchingScore(columnIndex,diagonalIndex);
                 objectScores[columnIndex][diagonalIndex].deleteScore = calcDeletionScore(columnIndex,diagonalIndex);
@@ -516,7 +516,7 @@ public class OctiLineMatcher {
             //fill colums starting from diagonal line
             for (int rowIndex = diagonalIndex + 1; rowIndex < objectScores[0].length; rowIndex++) {
                 logger.trace("calculating (" + diagonalIndex + ", " + rowIndex + ")");
-                objectScores[diagonalIndex][rowIndex] = new MatrixElement();
+                objectScores[diagonalIndex][rowIndex] = new MatrixElement(source.getCoordinateN(diagonalIndex), target.getCoordinateN(rowIndex));
 
                 objectScores[diagonalIndex][rowIndex].matchScore = calcMatchingScore(diagonalIndex,rowIndex);
                 objectScores[diagonalIndex][rowIndex].deleteScore = calcDeletionScore(diagonalIndex,rowIndex);

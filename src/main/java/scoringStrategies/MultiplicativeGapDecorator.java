@@ -6,11 +6,8 @@ import morph.MatrixElement;
 import org.locationtech.jts.geom.Coordinate;
 
 /**
- * Todo for multiple deletions/insertions have the cost be as described in
- * https://de.wikipedia.org/wiki/Gotoh-Algorithmus
- * implemented with multiplicative gap cost
- * needed: information on previous move
- * alternativly implement GapCosts in OctiLineMatcher
+ * Gap Start are penalized/rewarded with a positive multiplier > 1
+ *
  */
 public class MultiplicativeGapDecorator extends StrategyDecorator{
 

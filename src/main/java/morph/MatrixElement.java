@@ -2,9 +2,12 @@ package morph;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.locationtech.jts.geom.Coordinate;
 
 public class MatrixElement {
     private static final Logger logger = LogManager.getLogger();
+    public Coordinate sourceEndPoint;
+    public Coordinate targetEndPoint;
     double matchScore;
     double deleteScore;
     double insertScore;
@@ -19,6 +22,10 @@ public class MatrixElement {
 
     OctiSegmentAlignment.Operation minOperation;
 
+    public MatrixElement(Coordinate sourceEndPoint,Coordinate targetEndPoint){
+        this.sourceEndPoint = sourceEndPoint;
+        this.targetEndPoint = targetEndPoint;
+    }
     /** if equal : MATCH < INSERT < DELETE
      *
      * @param matchScore
