@@ -16,7 +16,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.svg.SVGDocument;
 import org.w3c.dom.svg.SVGSVGElement;
 
-import java.awt.Dimension;
+import java.awt.*;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,7 +28,7 @@ public class SvgGenerator {
 
     public static class Config {
         public Config(boolean showSource, boolean showTarget, boolean showAnimation,
-                      String sourceColor, String targetColor, String animationColor, String startPointColor, String backgroundColor) {
+                      Color sourceColor, Color targetColor, Color animationColor, Color startPointColor, Color backgroundColor) {
             this.showSource = showSource;
             this.showTarget = showTarget;
             this.showAnimation = showAnimation;
@@ -41,14 +41,14 @@ public class SvgGenerator {
         public boolean showSource;
         public boolean showTarget;
         public boolean showAnimation;
-        public String sourceColor;
-        public String targetColor;
-        public String animationColor;
-        public String startPointColor;
-        public String backgroundColor;
+        public Color sourceColor;
+        public Color targetColor;
+        public Color animationColor;
+        public Color startPointColor;
+        public Color backgroundColor;
     }
 
-    private Config config = new Config(false, false, true, "green", "green", "red", "purple", "white");
+    private Config config = new Config(false, false, true, Color.green, Color.blue, Color.red, Color.magenta, Color.white);
     private static double animationDurationTime = 5;
     private static final Logger logger = LogManager.getLogger();
 
@@ -183,13 +183,13 @@ public class SvgGenerator {
      * @param startY describes to top-left corner's y-Coordinate
      * @return the modified document
      */
-    private SVGDocument setBackgroundColor(SVGDocument doc, String color, double startX, double startY){
+    private SVGDocument setBackgroundColor(SVGDocument doc, Color color, double startX, double startY){
       Element backgroundRect = doc.createElementNS(SVGDOMImplementation.SVG_NAMESPACE_URI, "rect");
         backgroundRect.setAttributeNS(null, "x", String.valueOf(startX));
         backgroundRect.setAttributeNS(null, "y", String.valueOf(startY));
         backgroundRect.setAttributeNS(null, "width", "100%");
         backgroundRect.setAttributeNS(null, "height", "100%");
-        if(color != null) backgroundRect.setAttributeNS(null,"fill", color);
+        if(color != null) backgroundRect.setAttributeNS(null,"fill", "rgb(" + color.getRed() + ", "+ color.getGreen() + ", "+ color.getBlue() + ")");
         doc.getDocumentElement().appendChild(backgroundRect);
 
         doc.getDocumentElement().insertBefore(backgroundRect,doc.getDocumentElement().getFirstChild());
@@ -270,13 +270,13 @@ public class SvgGenerator {
      * @param color       the color in which the linestring is to be painted
      * @return the newly created polyline-Element
      */
-    public Element createAnimationElement(SVGDocument creationDoc, String from, String to,String id, String color) {
+    public Element createAnimationElement(SVGDocument creationDoc, String from, String to,String id, Color color) {
         String svgNameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
         Element polyGroup = creationDoc.createElementNS(svgNameSpace, "g");
         Element polyLineElement = creationDoc.createElementNS(svgNameSpace, "polyline");
 
         polyLineElement.setAttributeNS(null, "id", id);
-        polyLineElement.setAttributeNS(null, "stroke", color);
+        polyLineElement.setAttributeNS(null, "stroke", "rgb(" + color.getRed() + ", "+ color.getGreen() + ", "+ color.getBlue() + ")");
         polyLineElement.setAttributeNS(null, "stroke-width", "1%");
         polyLineElement.setAttributeNS(null, "fill", "none");
         polyLineElement.setAttributeNS(null, "points", ""); // animate
@@ -312,14 +312,14 @@ public class SvgGenerator {
      * @param color       the color in which the linestring is to be painted
      * @return the newly created polyline-Element
      */
-    public Element createPolyLineElement(SVGDocument creationDoc, CoordinateSequence coordinates,String id, String color) {
+    public Element createPolyLineElement(SVGDocument creationDoc, CoordinateSequence coordinates,String id, Color color) {
         String nameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
 
         Element polyGroup = creationDoc.createElementNS(nameSpace, "g");
         Element polyLineElement = creationDoc.createElementNS(nameSpace, "polyline");
 
         polyLineElement.setAttributeNS(null, "id", id);
-        polyLineElement.setAttributeNS(null, "stroke", color);
+        polyLineElement.setAttributeNS(null, "stroke", "rgb(" + color.getRed() + ", "+ color.getGreen() + ", "+ color.getBlue() + ")");
         polyLineElement.setAttributeNS(null, "stroke-width", "1%");
         polyLineElement.setAttributeNS(null, "fill", "none");
 
@@ -347,7 +347,7 @@ public class SvgGenerator {
      * @param color       the color in which the markers are to be painted
      * @return the created marker-Element
      */
-    public Element createMarkers(SVGDocument creationDoc, String id, String color) {
+    public Element createMarkers(SVGDocument creationDoc, String id, Color color) {
         String nameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
         Element marker = creationDoc.createElementNS(nameSpace, "marker");
 
@@ -365,7 +365,7 @@ public class SvgGenerator {
         circle.setAttributeNS(null, "cy", "1");
         circle.setAttributeNS(null, "r", "1");
         circle.setAttributeNS(null, "stroke", "none");
-        circle.setAttributeNS(null, "fill", color);
+        circle.setAttributeNS(null, "fill", "rgb(" + color.getRed() + ", "+ color.getGreen() + ", "+ color.getBlue() + ")");
 
         marker.appendChild(circle);
         return marker;

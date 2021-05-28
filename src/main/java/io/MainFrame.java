@@ -82,7 +82,7 @@ public class MainFrame extends JFrame {
     private JComboBox<String> strategyPicker;
     private JComboBox<String> decoratorPicker;
     private JComboBox<String> visibilityPicker;
-    private JComboBox<String> polyDistancePicker;
+    private JComboBox<String> startPointPicker;
 
     private JCheckBox showAnimationCheckBox;
     private JCheckBox showSourceCheckBox;
@@ -97,7 +97,7 @@ public class MainFrame extends JFrame {
         private boolean singleFileInput; //either use bothUri or (sourceUri and targetUri)
         private OctiMatchStrategy segmentStrategy;
 
-        private String polyDistanceStrategy;
+        private String startPointStrategy;
 
         public URI getSourceUri() {
             return sourceUri;
@@ -139,18 +139,18 @@ public class MainFrame extends JFrame {
             this.segmentStrategy = segmentStrategy;
         }
 
-        public String getPolyDistanceStrategy() {
-            return polyDistanceStrategy;
+        public String getStartPointStrategy() {
+            return startPointStrategy;
         }
 
-        public void setPolyDistanceStrategy(String polyDistanceStrategy) {
-            this.polyDistanceStrategy = polyDistanceStrategy;
+        public void setStartPointStrategy(String startPointStrategy) {
+            this.startPointStrategy = startPointStrategy;
         }
     }
 
     ;
     private MainFrame.Conig conig = new Conig();
-    private SvgGenerator.Config animtaionConfig = new SvgGenerator.Config(false, false, true, "green", "blue", "black", "red", "white");
+    private SvgGenerator.Config animationConfig = new SvgGenerator.Config(false, false, true, Color.green,Color.blue, Color.black, Color.red, Color.white);
 
     public MainFrame() {
         super("Polygonmorphing");
@@ -179,47 +179,110 @@ public class MainFrame extends JFrame {
     }
 
     private JPanel setUpAnimationOptionsPanel() {
-        JPanel animnationOptionsPanel = new JPanel();
-        BoxLayout lm = new BoxLayout(animnationOptionsPanel, BoxLayout.Y_AXIS);
-        TitledBorder title = new TitledBorder("Animation Options");
-        animnationOptionsPanel.setBorder(title);
-        animnationOptionsPanel.setLayout(lm);
+        JPanel animnationOptionsPanel = new JPanel(new GridBagLayout());
 
-        JCheckBox showSource = new JCheckBox("show source");
-        showSource.setSelected(this.animtaionConfig.showSource);
-        showSource.setHorizontalTextPosition(JCheckBox.LEFT);
-        showSource.addItemListener(event -> {
+        Border border = new TitledBorder("Animation Display");
+        animnationOptionsPanel.setBorder(border);
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        //source row
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(0, 0, 5, 0);
+
+        showAnimationCheckBox = new JCheckBox("Show source");
+        showAnimationCheckBox.setSelected(this.animationConfig.showSource);
+        showAnimationCheckBox.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
-                this.animtaionConfig.showSource = true;
+                this.animationConfig.showSource = true;
             } else if (event.getStateChange() == ItemEvent.DESELECTED) {
-                this.animtaionConfig.showSource = false;
+                this.animationConfig.showSource = false;
             }
         });
-        animnationOptionsPanel.add(showSource);
+        animnationOptionsPanel.add(showAnimationCheckBox,gbc);
+        gbc.gridx++;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        JButton sourceColorPicker = new JButton("Source color");
+        sourceColorPicker.setBackground(this.animationConfig.sourceColor);
+        sourceColorPicker.addActionListener(e -> {
+            //JColorChooser colorChooser = new JColorChooser();
+            Color sourceColor = JColorChooser.showDialog(animnationOptionsPanel, "Farbauswahl source", null);
+            if (! (sourceColor == null)) {
+                this.animationConfig.sourceColor = sourceColor;
+                sourceColorPicker.setBackground(this.animationConfig.sourceColor);
+            }
+        });
+        animnationOptionsPanel.add(sourceColorPicker, gbc);
 
-        JCheckBox showTarget = new JCheckBox("show target");
-        showTarget.setSelected(this.animtaionConfig.showTarget);
-        showTarget.setHorizontalTextPosition(JCheckBox.LEFT);
+
+        //target row
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
+
+        JCheckBox showTarget = new JCheckBox("Show target");
+        showTarget.setHorizontalTextPosition(SwingConstants.RIGHT);
+        showTarget.setSelected(this.animationConfig.showTarget);
         showTarget.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
-                this.animtaionConfig.showTarget = true;
+                this.animationConfig.showTarget = true;
             } else if (event.getStateChange() == ItemEvent.DESELECTED) {
-                this.animtaionConfig.showTarget = false;
+                this.animationConfig.showTarget = false;
             }
         });
-        animnationOptionsPanel.add(showTarget);
+        animnationOptionsPanel.add(showTarget, gbc);
+        gbc.gridx++;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        JButton targetColorPicker = new JButton("Target color");
+        targetColorPicker.setBackground(this.animationConfig.targetColor);
+        targetColorPicker.addActionListener(e -> {
+            //JColorChooser colorChooser = new JColorChooser();
+            Color targetColor = JColorChooser.showDialog(animnationOptionsPanel, "Farbauswahl target", null);
+            if (! (targetColor == null)){
+                this.animationConfig.targetColor = targetColor;
+                targetColorPicker.setBackground(this.animationConfig.targetColor);
+            }
+        });
+        animnationOptionsPanel.add(targetColorPicker, gbc);
 
-        JCheckBox showAnimation = new JCheckBox("show animation");
-        showAnimation.setSelected(this.animtaionConfig.showAnimation);
-        showAnimation.setHorizontalTextPosition(JCheckBox.LEFT);
+        //animation row
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.weightx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
+
+        JCheckBox showAnimation = new JCheckBox("Show animation");
+        showAnimation.setSelected(this.animationConfig.showAnimation);
         showAnimation.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
-                this.animtaionConfig.showAnimation = true;
+                this.animationConfig.showAnimation = true;
             } else if (event.getStateChange() == ItemEvent.DESELECTED) {
-                this.animtaionConfig.showAnimation = false;
+                this.animationConfig.showAnimation = false;
             }
         });
-        animnationOptionsPanel.add(showAnimation);
+        animnationOptionsPanel.add(showAnimation,gbc);
+        gbc.gridx++;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        JButton animnationColorPicker = new JButton("Animation color");
+        animnationColorPicker.setBackground(this.animationConfig.animationColor);
+        animnationColorPicker.addActionListener(e -> {
+            //JColorChooser colorChooser = new JColorChooser();
+            Color animationColor = JColorChooser.showDialog(animnationOptionsPanel, "Farbauswahl animation", null);
+            if (! (animationColor == null)){
+                this.animationConfig.animationColor = animationColor;
+                animnationColorPicker.setBackground(this.animationConfig.animationColor);
+            }
+        });
+        animnationOptionsPanel.add(animnationColorPicker, gbc);
+
         return animnationOptionsPanel;
     }
 
@@ -449,9 +512,26 @@ public class MainFrame extends JFrame {
         strategyPanel.setBorder(border);
         GridBagConstraints gbc = new GridBagConstraints();
 
-
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.weightx = 1;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(0, 0, 5, 0);
+        JLabel polyDistanceLabel = new JLabel("Startpoint selection");
+        strategyPanel.add(polyDistanceLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0;//dynamically also here
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        String[] polyDistanceStrings = new String[]{"Closest Points", "centroid distance"};
+        startPointPicker = new JComboBox<>(polyDistanceStrings);
+        startPointPicker.addItemListener(itemEvent -> {
+            if (itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
+        });
+        strategyPanel.add(startPointPicker, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
         gbc.weightx = 1;
         JLabel operationCostLabel = new JLabel("Operation Stategy");
         strategyPanel.add(operationCostLabel, gbc);
@@ -460,7 +540,6 @@ public class MainFrame extends JFrame {
         gbc.weightx = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(0, 0, 5, 0);
-        // placeholder , should probably be gathered from factory dynamically
 
         String[] strategyStrings = ScoringStrategyFactory.getStrategies().toArray(new String[0]);
         strategyPicker = new JComboBox<>(strategyStrings); //listmodel , comboboxmodel
@@ -508,24 +587,6 @@ public class MainFrame extends JFrame {
         });
 
         strategyPanel.add(visibilityPicker, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.weightx = 1;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.insets = new Insets(0, 0, 0, 0);
-        JLabel polyDistanceLabel = new JLabel("PolygonMatch Distance");
-        strategyPanel.add(polyDistanceLabel, gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 0;//dynamically also here
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        String[] polyDistanceStrings = new String[]{"Intersection over Union", "centroid distance"};
-        polyDistancePicker = new JComboBox<>(polyDistanceStrings);
-        polyDistancePicker.addItemListener(itemEvent -> {
-            if (itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
-        });
-        strategyPanel.add(polyDistancePicker, gbc);
 
         //now fill the config object with the first items of the comboBoxes
         this.setStrategy();
@@ -594,12 +655,19 @@ public class MainFrame extends JFrame {
         String strategyName = (String) this.strategyPicker.getSelectedItem();
         String strategyDecorators = (String) this.decoratorPicker.getSelectedItem();
         String visibilityDecorators = (String) this.visibilityPicker.getSelectedItem();
-        logger.trace("setting strategy decorators to " + strategyDecorators);
-        logger.trace("setting visibility decorators to " + visibilityDecorators);
+        String startPointStrategy = (String) this.startPointPicker.getSelectedItem();
+
+        logger.trace("setting strategy decorator to " + strategyDecorators);
+        logger.trace("setting visibility decorator to " + visibilityDecorators);
+        logger.trace("setting startpoint strategy to " + startPointStrategy);
+
         List<String> strategyDecoratorList = new ArrayList<>();
         strategyDecoratorList.add(strategyDecorators);
+
         List<String> visibilityDecoratorList = new ArrayList<>();
         visibilityDecoratorList.add(visibilityDecorators);
+
+        this.conig.setStartPointStrategy(startPointStrategy);
         try {
             this.conig.setSegmentStrategy(ScoringStrategyFactory.getStrategy(strategyName, strategyDecoratorList,visibilityDecoratorList));
         } catch (StrategyInitializationException e) {
@@ -640,18 +708,19 @@ public class MainFrame extends JFrame {
                 sourceExtractor.parseFile(configuration.getSourceUri());
                 targetExtractor.parseFile(configuration.getTargetUri());
             } catch (FileParseException e) {
-                //statusLabel.setText(e.getMessage());
                 logger.warn(e.getMessage());
                 sb.append(e.getMessage());
+                statusLabel.setText(sb.toString());
                 e.printStackTrace();
                 return;
             } catch (IOException e) {
                 statusLabel.setText(e.getMessage());
                 sb.append(e.getMessage());
                 e.printStackTrace();
+                statusLabel.setText(sb.toString());
                 return;
             }
-
+j
             if (sourceExtractor.numberOfParsedGeometries() != 1)
                 sb.append("Source File must contain exactly 1 parsable Geometry");
             if (targetExtractor.numberOfParsedGeometries() != 1)
@@ -678,42 +747,44 @@ public class MainFrame extends JFrame {
             if (sourceGeometry instanceof MultiPolygon && sourceGeometry.getNumGeometries() == 1) {
                 sourceGeometry = sourceGeometry.getGeometryN(0);
             } else {
-                statusLabel.setText("Geometries not supported yet");
-                sb.append("Geometries not supported yet");
+                sb.append("input source geometries not supported yet.");
+                statusLabel.setText(sb.toString());
                 return;
             }
             if (targetGeometry instanceof MultiPolygon && targetGeometry.getNumGeometries() == 1) {
                 targetGeometry = targetGeometry.getGeometryN(0);
             } else {
-                statusLabel.setText("Geometries not supported yet");
-                sb.append("Geometries not supported yet");
+                sb.append("Input geometries not supported yet.");
+                statusLabel.setText(sb.toString());
                 return;
             }
         }
 
+        // cast an check for octi-string
         OctiLineString srcString, tarString;
         try {
             srcString = OctiGeometryFactory.OCTI_FACTORY.convertToOctiLineString(sourceGeometry);
             tarString = OctiGeometryFactory.OCTI_FACTORY.convertToOctiLineString(targetGeometry);
         } catch (Exception e) {
-            statusLabel.setText("couldn't extract the OctilineString from provided Geometry");
-            sb.append("couldn't extract the OctilineString from provided Geometry");
+            sb.append("Could not extract the Octiline-String from provided Geometry");
             e.printStackTrace();
+            statusLabel.setText(sb.toString());
             return;
         }
 
-        OctiLineMatcher olm = new OctiLineMatcher(srcString, tarString, this.conig.getSegmentStrategy());
+        OctiLineMatcher olm = new OctiLineMatcher(srcString, tarString, this.conig.getSegmentStrategy(), this.conig.startPointStrategy);
         OctiStringAlignment stringAlignment;
         try {
             stringAlignment = olm.getAlignment();
         } catch (NoMinimumOperationException e) {
-            statusLabel.setText("couldn't calculate alignment"); //todo this isnt displayed since doc is resumed
-            sb.append("couldn't calculate alignment");
+            //todo this isn't displayed since doc is resumed
+            sb.append("Could not calculate an alignment");
             e.printStackTrace();
+            statusLabel.setText(sb.toString());
             return;
         }
 
-        SvgGenerator svgGenerator = new SvgGenerator(animtaionConfig);
+        SvgGenerator svgGenerator = new SvgGenerator(animationConfig);
         this.doc = svgGenerator.generateSVG(stringAlignment);
         this.canvas.setSVGDocument(doc);
         this.canvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);

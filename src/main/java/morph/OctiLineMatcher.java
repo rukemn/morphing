@@ -89,7 +89,6 @@ public class OctiLineMatcher {
      *
      * Assumptions:
      * <ul>
-     *     <li>OctiLineStrings are closed</li>
      *     <li>OctiLineStrings do not self-intersect</li>
      * </ul>
      *
@@ -101,13 +100,13 @@ public class OctiLineMatcher {
      *      <li>OctiLineStrings are rotated such that the starting points are the points returned by {@link OctiLineMatcher#determineBestStartingPoint}</li>
      *  </ul>
      *
-     * @param src
-     * @param tar
+     * @param src the source string
+     * @param tar the target string
      * @returns the pair of configured {@link OctiLineString}s,
      * {@link Pair#first()} being the source,
      * {@link Pair#second()} being the target,
      */
-    private Pair<OctiLineString, OctiLineString> createBaseConfig(OctiLineString src, OctiLineString tar){
+    private Pair<OctiLineString, OctiLineString> createBaseConfig(OctiLineString src, OctiLineString tar, String startpointStrategy){
 
         //checks for self-intersect, strings may be non-closed though
         if(! src.isSimple() ) throw new IllegalArgumentException("src input not simple");
@@ -132,7 +131,7 @@ public class OctiLineMatcher {
         }
 
         //considers the case of non-closedness
-        int[] startpoints = determineBestStartingPoint(src,tar);
+        int[] startpoints = determineBestStartingPoint(src,tar, startpointStrategy);
         src = src.makeNthPointTheFirst(startpoints[0]);
         tar = tar.makeNthPointTheFirst(startpoints[1]);
 
@@ -145,11 +144,15 @@ public class OctiLineMatcher {
      * @param targetLineString the target String
      */
     public OctiLineMatcher(OctiLineString sourceLineString, OctiLineString targetLineString) {
-        this(sourceLineString,targetLineString, new BaseMatchStrategy());
+        this(sourceLineString,targetLineString, new BaseMatchStrategy(),"Closest Point");
     }
 
     public OctiLineMatcher(OctiLineString sourceLineString, OctiLineString targetLineString, OctiMatchStrategy strategy){
-        Pair<OctiLineString,OctiLineString> baseConfig = createBaseConfig(sourceLineString,targetLineString);
+        this(sourceLineString,targetLineString, strategy,"Closest Point");
+    }
+
+    public OctiLineMatcher(OctiLineString sourceLineString, OctiLineString targetLineString, OctiMatchStrategy strategy, String startingPointStrategy){
+        Pair<OctiLineString,OctiLineString> baseConfig = createBaseConfig(sourceLineString,targetLineString,startingPointStrategy);
         source = baseConfig.first();
         target = baseConfig.second();
 
@@ -160,6 +163,8 @@ public class OctiLineMatcher {
         iterateBoard();
     }
 
+
+
     /**
      * Determines the starting Points of the alignment by selecting the two points (one from each LineString) with minimum distance to each other
      * @param first the first LineString
@@ -168,28 +173,32 @@ public class OctiLineMatcher {
      *          with the first element corresponding to the index of first,
      *          second element corresponding to the index of second
      */
-    private int[] determineBestStartingPoint(LineString first, LineString second) {
+    private int[] determineBestStartingPoint(LineString first, LineString second, String startpointStrategy) {
+        int[] startPoint_indices = {0, 0};
         if(!first.isClosed() || !second.isClosed()){
-            logger.warn("at least one linestring is not closed, returning starting points");
+            logger.warn("At least one linestring is not closed, returning the first points");
             return new int[]{0,0};
         }
-        logger.info("determining starting point by minimal distance");
-        int[] minIndices = {0, 0};
-        double minDistance = first.getCoordinateN(0).distance(second.getCoordinateN(0));
 
-        for (int i = 0; i < first.getNumPoints(); i++) {
-            Coordinate from = first.getCoordinateN(i);
-            for (int j = 0; j < second.getNumPoints(); j++) {
-                Coordinate to = second.getCoordinateN(j);
-                if (from.distance(to) < minDistance) {
-                    minDistance = from.distance(to);
-                    minIndices[0] = i;
-                    minIndices[1] = j;
+        if(startpointStrategy.equals("Closest Points")){ // O(n²)
+            logger.info("determining starting point by minimal distance");
+            double minDistance = first.getCoordinateN(0).distance(second.getCoordinateN(0));
+            for (int i = 0; i < first.getNumPoints(); i++) {
+                Coordinate from = first.getCoordinateN(i);
+                for (int j = 0; j < second.getNumPoints(); j++) {
+                    Coordinate to = second.getCoordinateN(j);
+                    if (from.distance(to) < minDistance) {
+                        minDistance = from.distance(to);
+                        startPoint_indices[0] = i;
+                        startPoint_indices[1] = j;
+                    }
                 }
             }
+        }else{
+            logger.warn("Could not handle start point strategy selection, returning the first points");
         }
-        logger.debug("Min distance are points are: " + minIndices[0] + " (source) and " + minIndices[1] + " (target)");
-        return minIndices;
+        logger.info("starting points are: " + startPoint_indices[0] + " (source) and " + startPoint_indices[1] + " (target)");
+        return startPoint_indices;
     }
 
     public OctiLineString getSource() {
@@ -300,7 +309,7 @@ public class OctiLineMatcher {
         OctiSegmentAlignment.Operation bestOperation = el.minOperation;
 
         while (bestOperation!= null){
-            el = el.getBestPreviousElement(); // there is a prev el so get it
+            el = el.getBestPreviousElement(); //basema there is a prev el so get it
             moves2.add(new Pair<>(new Pair<>(sourceIndex,targetIndex),bestOperation));
             switch ( bestOperation){
                 case Match:

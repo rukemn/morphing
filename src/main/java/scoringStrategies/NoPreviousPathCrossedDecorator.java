@@ -1,9 +1,11 @@
-package morph;
+package scoringStrategies;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import jtsadaptions.OctiGeometryFactory;
 import jtsadaptions.OctiLineSegment;
+import morph.MatrixElement;
+import morph.OctiLineMatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Coordinate;

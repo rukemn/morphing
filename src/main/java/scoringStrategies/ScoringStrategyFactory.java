@@ -1,6 +1,5 @@
 package scoringStrategies;
 
-import morph.NoPreviousPathCrossedDecorator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -74,8 +73,6 @@ public class ScoringStrategyFactory {
             }
             strat = decoratorInstantiator.apply(strat);
         }
-
-
         return strat;
     }
 
