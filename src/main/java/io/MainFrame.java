@@ -523,7 +523,7 @@ public class MainFrame extends JFrame {
         gbc.gridx = 1;
         gbc.weightx = 0;//dynamically also here
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        String[] polyDistanceStrings = new String[]{"Closest Points", "centroid distance"};
+        String[] polyDistanceStrings = new String[]{"Closest Points","Best Match Segment", "Corner: Bottom left", "Corner: Top right", "Corner: Top left", "Corner: Bottom right"};
         startPointPicker = new JComboBox<>(polyDistanceStrings);
         startPointPicker.addItemListener(itemEvent -> {
             if (itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
@@ -720,7 +720,7 @@ public class MainFrame extends JFrame {
                 statusLabel.setText(sb.toString());
                 return;
             }
-j
+
             if (sourceExtractor.numberOfParsedGeometries() != 1)
                 sb.append("Source File must contain exactly 1 parsable Geometry");
             if (targetExtractor.numberOfParsedGeometries() != 1)
