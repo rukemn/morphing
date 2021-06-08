@@ -283,6 +283,24 @@ public class MainFrame extends JFrame {
         });
         animnationOptionsPanel.add(animnationColorPicker, gbc);
 
+        // row
+
+        gbc.gridx = 1;
+        gbc.gridy = 3;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        JButton startpointColorPicker = new JButton("Startpoint color");
+        startpointColorPicker.setBackground(this.animationConfig.startPointColor);
+        startpointColorPicker.addActionListener(e -> {
+            //JColorChooser colorChooser = new JColorChooser();
+            Color startpointColor = JColorChooser.showDialog(animnationOptionsPanel, "Farbauswahl Startpunkt", null);
+            if (! (startpointColor == null)){
+                this.animationConfig.startPointColor = startpointColor;
+                startpointColorPicker.setBackground(this.animationConfig.startPointColor);
+            }
+        });
+        animnationOptionsPanel.add(startpointColorPicker, gbc);
+
         return animnationOptionsPanel;
     }
 
@@ -805,7 +823,7 @@ public class MainFrame extends JFrame {
     /**
      * Button will manipulate the slider to reflect current animation progress on pause
      *
-     * @return
+     * @return the created Button
      */
     private JButton createAnimationPauseButton() {
         //initial state is "running", so set it to show that user can pause

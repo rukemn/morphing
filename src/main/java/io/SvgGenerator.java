@@ -246,11 +246,11 @@ public class SvgGenerator {
         }
 
         if (config.showSource) {
-            Element polylineSrc = createPolyLineElement(doc, alignment.getSourceSequence(), "SOURCE-" + alignment.getId(), config.sourceColor);
+            Element polylineSrc = createPolyLineElement(doc, alignment.getSourceSequence(), "SOURCE-" + alignment.getId(), config.sourceColor, config.startPointColor);
             alignmentGroup.appendChild(polylineSrc);
         }
         if (config.showTarget) {
-            Element polylineTar = createPolyLineElement(doc, alignment.getTargetSequence(),"TARGET-" + alignment.getId(), config.targetColor);
+            Element polylineTar = createPolyLineElement(doc, alignment.getTargetSequence(),"TARGET-" + alignment.getId(), config.targetColor, config.startPointColor);
             alignmentGroup.appendChild(polylineTar);
         }
 
@@ -309,17 +309,17 @@ public class SvgGenerator {
      * @param creationDoc the document used to create elements
      * @param coordinates  the linestring from which the "points"-attribute of the Polyline-Element is derived
      * @param id          the id the Polyline-Element is tagged with
-     * @param color       the color in which the linestring is to be painted
+     * @param baseColor       the color in which the linestring is to be painted
      * @return the newly created polyline-Element
      */
-    public Element createPolyLineElement(SVGDocument creationDoc, CoordinateSequence coordinates,String id, Color color) {
+    public Element createPolyLineElement(SVGDocument creationDoc, CoordinateSequence coordinates,String id, Color baseColor, Color startPointColor) {
         String nameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
 
         Element polyGroup = creationDoc.createElementNS(nameSpace, "g");
         Element polyLineElement = creationDoc.createElementNS(nameSpace, "polyline");
 
         polyLineElement.setAttributeNS(null, "id", id);
-        polyLineElement.setAttributeNS(null, "stroke", "rgb(" + color.getRed() + ", "+ color.getGreen() + ", "+ color.getBlue() + ")");
+        polyLineElement.setAttributeNS(null, "stroke", "rgb(" + baseColor.getRed() + ", "+ baseColor.getGreen() + ", "+ baseColor.getBlue() + ")");
         polyLineElement.setAttributeNS(null, "stroke-width", "1%");
         polyLineElement.setAttributeNS(null, "fill", "none");
 
@@ -330,10 +330,14 @@ public class SvgGenerator {
         String polyLineString = sb.substring(0, sb.length() - 1);
         polyLineElement.setAttributeNS(null, "points", polyLineString);
 
-        String markerId = "MARKER-" + id;
-        Element markerElement = createMarkers(creationDoc, markerId, color);
+        String baseMarkerId = "MARKER-" + id;
+        String startPointmarkerId = "MARKER-start-" +id;
+        Element markerElement = createMarkers(creationDoc, baseMarkerId, baseColor);
+        Element startMarkerElement = createMarkers(creationDoc, startPointmarkerId, startPointColor);
         polyGroup.appendChild(markerElement);
-        polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + markerId + ")");
+        polyGroup.appendChild(startMarkerElement);
+        polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + baseMarkerId + ")");
+        polyLineElement.setAttributeNS(null, "marker-start", "url(#" + startPointmarkerId + ")");
         polyGroup.appendChild(polyLineElement);
 
         return polyGroup;

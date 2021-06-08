@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.0//EN'
+          'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg contentScriptType="text/ecmascript" xmlns:xlink="http://www.w3.org/1999/xlink" zoomAndPan="magnify" contentStyleType="text/css" viewBox="160 427 384 250" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" version="1.0"
+><rect fill="rgb(255, 255, 255)" x="160.0" width="100%" height="100%" y="427.0"
+  /><g
+  ><g
+    ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKER-ANIMATION-8b39ab49-cfc8-49d8-9335-3340c63e3596" markerWidth="2" refX="1"
+      ><circle fill="rgb(0, 0, 0)" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKERSTART-ANIMATION-8b39ab49-cfc8-49d8-9335-3340c63e3596" markerWidth="2" refX="1"
+      ><circle fill="rgb(255, 0, 0)" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><polyline points="" marker-mid="url(#MARKER-ANIMATION-8b39ab49-cfc8-49d8-9335-3340c63e3596)" fill="none" id="ANIMATION-8b39ab49-cfc8-49d8-9335-3340c63e3596" stroke="rgb(0, 0, 0)" marker-start="url(#MARKERSTART-ANIMATION-8b39ab49-cfc8-49d8-9335-3340c63e3596)" stroke-width="1%"
+      ><animate dur="5.0s" from="192.0,448.0 384.0,448.0 320.0,512.0 320.0,512.0 512.0,512.0 " attributeName="points" repeatCount="indefinite" to="208.0,656.0 480.0,656.0 480.0,656.0 480.0,544.0 480.0,544.0 "
+      /></polyline
+    ></g
+    ><g
+    ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKER-SOURCE-8b39ab49-cfc8-49d8-9335-3340c63e3596" markerWidth="2" refX="1"
+      ><circle fill="rgb(0, 255, 0)" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><polyline fill="none" id="SOURCE-8b39ab49-cfc8-49d8-9335-3340c63e3596" stroke-width="1%" marker-mid="url(#MARKER-SOURCE-8b39ab49-cfc8-49d8-9335-3340c63e3596)" points="192.0,448.0 384.0,448.0 320.0,512.0 512.0,512.0" stroke="rgb(0, 255, 0)"
+    /></g
+    ><g
+    ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKER-TARGET-8b39ab49-cfc8-49d8-9335-3340c63e3596" markerWidth="2" refX="1"
+      ><circle fill="rgb(0, 0, 255)" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><polyline fill="none" id="TARGET-8b39ab49-cfc8-49d8-9335-3340c63e3596" stroke-width="1%" marker-mid="url(#MARKER-TARGET-8b39ab49-cfc8-49d8-9335-3340c63e3596)" points="208.0,656.0 480.0,656.0 480.0,544.0" stroke="rgb(0, 0, 255)"
+    /></g
+  ></g
+></svg
+>

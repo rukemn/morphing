@@ -3,7 +3,7 @@ package jtsadaptions;
 import morph.MatrixElement;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import scoringStrategies.BaseMatchStrategy;
+import scoringStrategies.VertexDistanceStrategy;
 import scoringStrategies.OctiMatchStrategy;
 import scoringStrategies.CompleteVisibleDecorator;
 import org.locationtech.jts.geom.Coordinate;
@@ -13,7 +13,7 @@ import org.locationtech.jts.geom.LineSegment;
 public class OctiLineSegment extends LineSegment implements Octilinear{
     private static final Logger logger = LogManager.getLogger();
     private Orientation orientation = null;
-    public static OctiMatchStrategy strategy = new CompleteVisibleDecorator(new BaseMatchStrategy());
+    public static OctiMatchStrategy strategy = new CompleteVisibleDecorator(new VertexDistanceStrategy());
 
     public enum Orientation {
         UP,

@@ -42,7 +42,7 @@ public class AffineGapStrategy implements OctiMatchStrategy {
         if(previous.insertionsInARow > 0){
             logger.trace("ins "+ previous.insertionsInARow);
             return indelScore;
-        }else{ // this is a gab start
+        }else{ // this is a gap start
             logger.trace("gap");
             return indelScore + gapPenalty;
         }

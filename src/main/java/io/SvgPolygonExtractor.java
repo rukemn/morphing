@@ -20,7 +20,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-//todo interface this to allow for more Extractors which can be plugged in
 public class SvgPolygonExtractor implements PolygonExtractorInterface{
 
     private static Logger logger = LogManager.getLogger();

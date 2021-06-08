@@ -72,7 +72,7 @@ public class OctiLineMatcher {
             return;
         }
 
-        OctiLineSegment.setStrategy(new CompleteVisibleDecorator(new BaseMatchStrategy()), src, tar);
+        OctiLineSegment.setStrategy(new CompleteVisibleDecorator(new VertexDistanceStrategy()), src, tar);
         OctiLineMatcher matcher = new OctiLineMatcher(src, tar);
 
         try {
@@ -144,7 +144,7 @@ public class OctiLineMatcher {
      * @param targetLineString the target String
      */
     public OctiLineMatcher(OctiLineString sourceLineString, OctiLineString targetLineString) {
-        this(sourceLineString, targetLineString, new BaseMatchStrategy(), "Closest Point");
+        this(sourceLineString, targetLineString, new VertexDistanceStrategy(), "Closest Point");
     }
 
     public OctiLineMatcher(OctiLineString sourceLineString, OctiLineString targetLineString, OctiMatchStrategy strategy) {

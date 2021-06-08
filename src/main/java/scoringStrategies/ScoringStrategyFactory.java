@@ -16,7 +16,7 @@ public class ScoringStrategyFactory {
 
     // switch to entry if theres no more overloaded functions
     private static final Map<String, Supplier<OctiMatchStrategy>> baseStrategyMap = Map.of(
-            "BaseMatch", BaseMatchStrategy::new, //ignore any underlying strategy since this is base
+            "Vertex Distance", VertexDistanceStrategy::new, //ignore any underlying strategy since this is base
             "Flat Score", FlatScoreStrategy::new,
             "Affine Gap", AffineGapStrategy::new
     );
@@ -31,7 +31,7 @@ public class ScoringStrategyFactory {
             "No Visibility Constraints", (underlying) -> new EmptyDecorator(underlying),
             "Target Visible", (underlying) -> new TargetVisibleDecorator(underlying),
             "Completely Visible", (underlying) -> new CompleteVisibleDecorator(underlying),
-            "No VertexPath Intersect", (underlying) -> new NoPreviousPathCrossedDecorator(underlying)
+            "No prev. VertexPath intersects", (underlying) -> new NoPreviousPathCrossedDecorator(underlying)
     );
 
     /**

@@ -10,7 +10,7 @@ import org.locationtech.jts.geom.Coordinate;
  * have to travel in the morph.
  * Additionally matches are awarded a matchDivisor to favor matches over insertions/deletions
  */
-public class BaseMatchStrategy implements OctiMatchStrategy {
+public class VertexDistanceStrategy implements OctiMatchStrategy {
 
     public static final double MATCH_DIVISOR = 10.0;
 
