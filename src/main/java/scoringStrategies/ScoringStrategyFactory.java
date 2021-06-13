@@ -24,6 +24,7 @@ public class ScoringStrategyFactory {
     // switch to entry if theres no more overloaded functions
     private static final Map<String, Function<OctiMatchStrategy, OctiMatchStrategy>> strategyDecoratorMap = Map.of(
             "multiplicative gap cost", (underlying) -> new MultiplicativeGapDecorator(underlying),
+            "Weighted Edge length", (underlying) -> new WeightedEdgelengthDecorator(underlying),
             "none" ,  (underlying) -> new EmptyDecorator(underlying)
     );
 
