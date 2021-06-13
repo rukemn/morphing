@@ -16,11 +16,24 @@ repositories {
 }
 
 dependencies {
-    compile 'org.junit.jupiter:junit-jupiter:5.6.3'
-    implementation 'com.github.twak:campskeleton:master-SNAPSHOT'
+    compile 'org.junit.jupiter:junit-jupiter:5.6.3' //testing
+    implementation 'com.github.twak:campskeleton:master-SNAPSHOT' //convinience
+    implementation group: 'com.opencsv', name: 'opencsv', version: '5.3'
+    implementation group: 'com.google.guava', name: 'guava', version: '30.1-jre' // csv parsing
     //implementation 'com.github.travel-time-maps:master-SNAPSHOT'
-    compile group: 'org.apache.xmlgraphics', name: 'batik-xml', version: '1.1'
-    compile group: 'org.apache.xmlgraphics', name: 'batik-swing', version: '1.14'
+
+    //compile group: 'org.apache.xmlgraphics', name: 'batik-xml', version: '1.1'
+    implementation group: 'org.apache.xmlgraphics', name: 'batik-xml', version: '1.14'
+
+    //compile group: 'org.apache.xmlgraphics', name: 'batik-swing', version: '1.14'
+    implementation group: 'org.apache.xmlgraphics', name: 'batik-swing', version: '1.14'
+
+    //implementation group: 'org.apache.xmlgraphics', name: 'batik-util', version: '1.14'
+    implementation group: 'org.apache.xmlgraphics', name: 'batik-constants', version: '1.14'
+
+    implementation group: 'org.apache.xmlgraphics', name: 'batik-svggen', version: '1.14' //this containts XMLConstants in the correct package, the above ones don't
+    //implementation group: 'org.apache.xmlgraphics', name: 'batik-all', version: '1.9'
+
     compile group : 'org.locationtech.jts', name: 'jts-core', version: '1.17.0' //'org.locationtech.jts:jts:1.17.1'
     compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.14.0'
     compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.14.0'

@@ -1,20 +1,24 @@
 package io;
 
-import jtsadaptions.OctiLineString;
 import morph.OctiSegmentAlignment;
 import morph.OctiStringAlignment;
 import org.apache.batik.anim.dom.SVGDOMImplementation;
+import org.apache.batik.anim.dom.SVGOMDocument;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateSequence;
 import org.locationtech.jts.geom.Envelope;
 import org.twak.utils.Pair;
+
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Element;
 import org.w3c.dom.svg.SVGDocument;
+import org.w3c.dom.svg.SVGSVGElement;
 
 import java.awt.*;
 import java.util.Iterator;
+import java.util.List;
 
 
 /**
@@ -23,10 +27,8 @@ import java.util.Iterator;
 public class SvgGenerator {
 
     public static class Config {
-
         public Config(boolean showSource, boolean showTarget, boolean showAnimation,
-                      String sourceColor, String targetColor, String animationColor, String startPointColor) {
-
+                      Color sourceColor, Color targetColor, Color animationColor, Color startPointColor, Color backgroundColor) {
             this.showSource = showSource;
             this.showTarget = showTarget;
             this.showAnimation = showAnimation;
@@ -34,24 +36,80 @@ public class SvgGenerator {
             this.targetColor = targetColor;
             this.animationColor = animationColor;
             this.startPointColor = startPointColor;
+            this.backgroundColor = backgroundColor;
         }
 
         public boolean showSource;
         public boolean showTarget;
         public boolean showAnimation;
-        public String sourceColor;
-        public String targetColor;
-        public String animationColor;
-        public String startPointColor;
+        public Color sourceColor;
+        public Color targetColor;
+        public Color animationColor;
+        public Color startPointColor;
+        public Color backgroundColor;
     }
 
-    private Config config = new Config(true, true, true, "blue", "green", "red", "purple");
+    private Config config = new Config(false, false, true, Color.green, Color.blue, Color.red, Color.magenta, Color.white);
+    private static double animationDurationTime = 5;
     private static final Logger logger = LogManager.getLogger();
 
-    public SvgGenerator(){ }
+    public SvgGenerator() {
+    }
 
-    public SvgGenerator(Config config){
+    public SvgGenerator(Config config) {
         this.config = config;
+    }
+
+    /**
+     * Pauses all animations in the document and returns its current animation progress/time
+     * 0 represents the
+     *
+     * @param doc
+     * @return the point in time the animation was paused at
+     */
+    public synchronized static float pause(SVGDocument doc) {
+        SVGOMDocument omDoc = (SVGOMDocument) doc;
+        SVGSVGElement svgEl = omDoc.getRootElement();
+        if (omDoc.getRootElement().animationsPaused()) {
+            logger.warn("setting to running");
+            omDoc.getRootElement().unpauseAnimations();
+        } else { // is running
+            logger.warn("setting to paused");
+            omDoc.getRootElement().pauseAnimations();
+        }
+        logger.warn("paused at" + svgEl.getCurrentTime());
+        return svgEl.getCurrentTime() % (float) animationDurationTime;
+    }
+
+    /**
+     * Sets the animation Time to the value specified in the interval [0,1) ,
+     * where 0 equals the start and 1 the start of the next animation loop.
+     * If the end is desired call this function with a value just below 1
+     * <p>
+     * if a value smaller than 0 is given , the animation time is set to its start
+     * if a value bigger than 1 is given, the animation time is set to its end (via time = 0.0.9999999f)
+     *
+     * @param time the time
+     */
+    public static void setAnimationTime(SVGDocument doc, float time) {
+        if (time < 0) time = 0.0f;
+        if (time > 1 || time == 1) time = 0.9999999999f;
+        time *= animationDurationTime;
+
+        //cast it into stoppable svg
+        SVGOMDocument omDoc = (SVGOMDocument) doc;
+        omDoc.getRootElement().setCurrentTime(time);
+        logger.trace("set animationTime: " + time);
+    }
+
+    public static float getAnimationTime(SVGDocument doc) {
+        SVGOMDocument omDoc = (SVGOMDocument) doc;
+        float time = omDoc.getRootElement().getCurrentTime();
+        logger.trace("time" + time);
+        time %= animationDurationTime; //remainder
+        time /= animationDurationTime; //scale to [0,1)
+        logger.trace("time in animation" + time);
+        return time;
     }
 
     private Pair<String, String> parse(OctiStringAlignment alignments) {
@@ -84,61 +142,70 @@ public class SvgGenerator {
 
     public SVGDocument generateSVG(OctiStringAlignment alignments) {
         SVGDocument doc = createSVGDocument();
-        fillSvgDocument(doc, alignments);
+        fillSvgDocument(doc, alignments, true);
         return doc;
+    }
 
+    public SVGDocument generateSVG(List<OctiStringAlignment> alignmentList) {
+        SVGDocument doc = createSVGDocument();
+        fillSvgDocument(doc, alignmentList);
+        return doc;
     }
 
     public SVGDocument createSVGDocument() {
         DOMImplementation impl = SVGDOMImplementation.getDOMImplementation();
+
         String svgNameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
         SVGDocument doc = (SVGDocument) impl.createDocument(svgNameSpace, "svg", null);
-
-
         return doc;
     }
 
-    /** returns the dimensions of the doc
+    /**
+     * returns the dimensions of the doc
      * maybe move to more appropriate place
-     *      currently searching for:
-     *      <l>
-     *          <li>viewBox</li>
-     *      </l>
+     * currently searching for:
+     * <l>
+     * <li>viewBox</li>
+     * </l>
      *
      * @param doc
      * @return
      */
-    public static Dimension retrieveDimension(SVGDocument doc){
-        int width = Integer.parseInt(doc.getDocumentElement().getAttributeNodeNS(null,"viewBox").getValue().split(" ")[2]);
-        int height = Integer.parseInt(doc.getDocumentElement().getAttributeNodeNS(null,"viewBox").getValue().split(" ")[3]);
-        logger.debug("width "+ width + " height " + height);
-        return new java.awt.Dimension(width,height);
+    public static Dimension retrieveDimension(SVGDocument doc) {
+        int width = Integer.parseInt(doc.getDocumentElement().getAttributeNodeNS(null, "viewBox").getValue().split(" ")[2]);
+        int height = Integer.parseInt(doc.getDocumentElement().getAttributeNodeNS(null, "viewBox").getValue().split(" ")[3]);
+        logger.debug("width " + width + " height " + height);
+        return new java.awt.Dimension(width, height);
 
     }
 
-    /** mostly debuggin purposes
+    /**
+     * mostly debuggin purposes
      * no background is set if color == null
      *
-     * @param doc the doc to have its background set
-     * @param color the background color
+     * @param doc    the doc to have its background set
+     * @param color  the background color
      * @param startX describes to top-left corner's x-Coordinate
      * @param startY describes to top-left corner's y-Coordinate
      * @return the modified document
      */
-    private SVGDocument setBackgroundColor(SVGDocument doc, String color, double startX, double startY){
+    private SVGDocument setBackgroundColor(SVGDocument doc, Color color, double startX, double startY) {
         Element backgroundRect = doc.createElementNS(SVGDOMImplementation.SVG_NAMESPACE_URI, "rect");
         backgroundRect.setAttributeNS(null, "x", String.valueOf(startX));
         backgroundRect.setAttributeNS(null, "y", String.valueOf(startY));
         backgroundRect.setAttributeNS(null, "width", "100%");
         backgroundRect.setAttributeNS(null, "height", "100%");
-        if(color != null) backgroundRect.setAttributeNS(null,"fill", "yellow");
+        if (color != null)
+            backgroundRect.setAttributeNS(null, "fill", "rgb(" + color.getRed() + ", " + color.getGreen() + ", " + color.getBlue() + ")");
         doc.getDocumentElement().appendChild(backgroundRect);
+
+        doc.getDocumentElement().insertBefore(backgroundRect, doc.getDocumentElement().getFirstChild());
+
         return doc;
     }
 
-    private SVGDocument setViewBox(SVGDocument doc, OctiStringAlignment alignment) {
+    private SVGDocument setViewBox(SVGDocument doc, Envelope env) {
         Element svgRoot = doc.getDocumentElement();
-        Envelope env = alignment.getEnvelope();
         double margin = 0.1;
         double marginX = env.getWidth() * margin;
         double marginY = env.getHeight() * margin;
@@ -146,41 +213,56 @@ public class SvgGenerator {
         //make it int
         int viewBoxStartX = Double.valueOf(Math.floor(env.getMinX() - marginX)).intValue();
         int viewBoxStartY = Double.valueOf(Math.floor(env.getMinY() - marginY)).intValue();
-        int viewBoxWidth = Double.valueOf(env.getWidth() + 2 * marginX).intValue();
-        int viewBoxHeight = Double.valueOf(env.getHeight() + 2 * marginY).intValue();
+        int viewBoxWidth = Double.valueOf(Math.ceil(env.getWidth() + 2 * marginX)).intValue();
+        int viewBoxHeight = Double.valueOf(Math.ceil(env.getHeight() + 2 * marginY)).intValue();
 
         String viewBoxValue = "" + viewBoxStartX + " " + viewBoxStartY + " " +
-                                    viewBoxWidth + " " + viewBoxHeight;
-        logger.warn("viewBox" + viewBoxValue);
+                viewBoxWidth + " " + viewBoxHeight;
+        logger.warn("viewBox: " + viewBoxValue);
         svgRoot.setAttributeNS(null, "viewBox", viewBoxValue);
 
-        setBackgroundColor(doc,"yellow", viewBoxStartX, viewBoxStartY);
-
+        setBackgroundColor(doc, config.backgroundColor, viewBoxStartX, viewBoxStartY);
         return doc;
     }
 
-    private SVGDocument fillSvgDocument(SVGDocument doc, OctiStringAlignment alignment) {
+    private SVGDocument fillSvgDocument(SVGDocument doc, List<OctiStringAlignment> alignmentList) {
+        Envelope env = new Envelope();
+        for (OctiStringAlignment alignment : alignmentList) {
+            fillSvgDocument(doc, alignment, false);
+            env.expandToInclude(alignment.getEnvelope());
+
+        }
+        setViewBox(doc, env);
+        return doc;
+
+    }
+
+    private SVGDocument fillSvgDocument(SVGDocument doc, OctiStringAlignment alignment, boolean setViewBox) {
         for (OctiSegmentAlignment sa : alignment) {
             logger.trace(sa.getOrientation() + ", " + sa.getOperation());
         }
-        Pair<String, String> svgAlignmentStrings = parse(alignment);
-
-        setViewBox(doc,alignment);
+        String svgNameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
+        Element alignmentGroup = doc.createElementNS(svgNameSpace, "g");
 
 
         if (config.showAnimation) {
-            Element animation = createAnimationElement(doc, svgAlignmentStrings.first(), svgAlignmentStrings.second(), config.animationColor);
-            doc.getDocumentElement().appendChild(animation);
+            Pair<String, String> svgAlignmentStrings = parse(alignment);
+            Element animation = createAnimationElement(doc, svgAlignmentStrings.first(), svgAlignmentStrings.second(), "ANIMATION-" + alignment.getId(), config.animationColor);
+            alignmentGroup.appendChild(animation);
         }
 
         if (config.showSource) {
-            Element polylineSrc = createPolyLineElement(doc, alignment.getSourceString(), config.sourceColor);
-            doc.getDocumentElement().appendChild(polylineSrc);
+            Element polylineSrc = createPolyLineElement(doc, alignment.getSourceSequence(), "SOURCE-" + alignment.getId(), config.sourceColor, config.startPointColor);
+            alignmentGroup.appendChild(polylineSrc);
         }
         if (config.showTarget) {
-            Element polylineTar = createPolyLineElement(doc, alignment.getTargetString(), config.targetColor);
-            doc.getDocumentElement().appendChild(polylineTar);
+            Element polylineTar = createPolyLineElement(doc, alignment.getTargetSequence(), "TARGET-" + alignment.getId(), config.targetColor, config.startPointColor);
+            alignmentGroup.appendChild(polylineTar);
         }
+
+        doc.getDocumentElement().appendChild(alignmentGroup);
+
+        if (setViewBox) setViewBox(doc, alignment.getEnvelope());
         return doc;
     }
 
@@ -190,34 +272,38 @@ public class SvgGenerator {
      * @param creationDoc the document used to create elements
      * @param from        the linestring from which the "points"-attribute of the Polyline-Element is derived
      * @param to          the linestring from which the "points"-attribute of the Polyline-Element is derived
+     * @param id          the id the Polyline-Element is tagged with
      * @param color       the color in which the linestring is to be painted
      * @return the newly created polyline-Element
      */
-    public Element createAnimationElement(SVGDocument creationDoc, String from, String to, String color) {
+    public Element createAnimationElement(SVGDocument creationDoc, String from, String to, String id, Color color) {
         String svgNameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
         Element polyGroup = creationDoc.createElementNS(svgNameSpace, "g");
         Element polyLineElement = creationDoc.createElementNS(svgNameSpace, "polyline");
 
-        polyLineElement.setAttributeNS(null, "stroke", color);
-        polyLineElement.setAttributeNS(null, "stroke-width", "3");
+        polyLineElement.setAttributeNS(null, "id", id);
+        polyLineElement.setAttributeNS(null, "stroke", "rgb(" + color.getRed() + ", " + color.getGreen() + ", " + color.getBlue() + ")");
+        polyLineElement.setAttributeNS(null, "stroke-width", "1%");
         polyLineElement.setAttributeNS(null, "fill", "none");
+        polyLineElement.setAttributeNS(null, "points", ""); // animate
 
         Element animateElement = creationDoc.createElementNS(svgNameSpace, "animate");
         animateElement.setAttributeNS(null, "attributeName", "points");
-        animateElement.setAttributeNS(null, "dur", "5s");
+        animateElement.setAttributeNS(null, "dur", animationDurationTime + "s");
         animateElement.setAttributeNS(null, "repeatCount", "indefinite");
         animateElement.setAttributeNS(null, "from", from);
         animateElement.setAttributeNS(null, "to", to);
         polyLineElement.appendChild(animateElement);
-
-        String markerId = color + "Circle";
-        String startMarkerId = color + "StartCircle";
-        Element markerElement = createMarkers(creationDoc, markerId, color);
-        Element startMarkerElement = createMarkers(creationDoc, startMarkerId, config.startPointColor);
+        String markerId = "MARKER-" + id;
+        Element markerElement = createMarkers(creationDoc, markerId, config.animationColor);
         polyGroup.appendChild(markerElement);
-        polyGroup.appendChild(startMarkerElement);
         polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + markerId + ")");
+
+        String startMarkerId = "MARKERSTART-" + id;
+        Element startMarkerElement = createMarkers(creationDoc, startMarkerId, config.startPointColor);
+        polyGroup.appendChild(startMarkerElement);
         polyLineElement.setAttributeNS(null, "marker-start", "url(#" + startMarkerId + ")");
+
         polyGroup.appendChild(polyLineElement);
 
         return polyGroup;
@@ -227,31 +313,37 @@ public class SvgGenerator {
      * Creates an svg Polyline-Element
      *
      * @param creationDoc the document used to create elements
-     * @param lineString  the linestring from which the "points"-attribute of the Polyline-Element is derived
-     * @param color       the color in which the linestring is to be painted
+     * @param coordinates the linestring from which the "points"-attribute of the Polyline-Element is derived
+     * @param id          the id the Polyline-Element is tagged with
+     * @param baseColor   the color in which the linestring is to be painted
      * @return the newly created polyline-Element
      */
-    public Element createPolyLineElement(SVGDocument creationDoc, OctiLineString lineString, String color) {
+    public Element createPolyLineElement(SVGDocument creationDoc, CoordinateSequence coordinates, String id, Color baseColor, Color startPointColor) {
         String nameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
 
         Element polyGroup = creationDoc.createElementNS(nameSpace, "g");
         Element polyLineElement = creationDoc.createElementNS(nameSpace, "polyline");
 
-        polyLineElement.setAttributeNS(null, "stroke", color);
-        polyLineElement.setAttributeNS(null, "stroke-width", "3");
+        polyLineElement.setAttributeNS(null, "id", id);
+        polyLineElement.setAttributeNS(null, "stroke", "rgb(" + baseColor.getRed() + ", " + baseColor.getGreen() + ", " + baseColor.getBlue() + ")");
+        polyLineElement.setAttributeNS(null, "stroke-width", "1%");
         polyLineElement.setAttributeNS(null, "fill", "none");
 
         StringBuilder sb = new StringBuilder();
-        for (Coordinate c : lineString.getCoordinates()) {
+        for (Coordinate c : coordinates.toCoordinateArray()) {
             sb.append(c.x).append(",").append(c.y).append(" ");
         }
         String polyLineString = sb.substring(0, sb.length() - 1);
         polyLineElement.setAttributeNS(null, "points", polyLineString);
 
-        String markerId = color + "Circle";
-        Element markerElement = createMarkers(creationDoc, markerId, color);
+        String baseMarkerId = "MARKER-" + id;
+        String startPointmarkerId = "MARKER-start-" + id;
+        Element markerElement = createMarkers(creationDoc, baseMarkerId, baseColor);
+        Element startMarkerElement = createMarkers(creationDoc, startPointmarkerId, startPointColor);
         polyGroup.appendChild(markerElement);
-        polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + markerId + ")");
+        polyGroup.appendChild(startMarkerElement);
+        polyLineElement.setAttributeNS(null, "marker-mid", "url(#" + baseMarkerId + ")");
+        polyLineElement.setAttributeNS(null, "marker-start", "url(#" + startPointmarkerId + ")");
         polyGroup.appendChild(polyLineElement);
 
         return polyGroup;
@@ -265,23 +357,25 @@ public class SvgGenerator {
      * @param color       the color in which the markers are to be painted
      * @return the created marker-Element
      */
-    public Element createMarkers(SVGDocument creationDoc, String id, String color) {
+    public Element createMarkers(SVGDocument creationDoc, String id, Color color) {
         String nameSpace = SVGDOMImplementation.SVG_NAMESPACE_URI;
         Element marker = creationDoc.createElementNS(nameSpace, "marker");
 
         marker.setAttributeNS(null, "id", id);
-        marker.setAttributeNS(null, "markerWidth", "4");
-        marker.setAttributeNS(null, "markerHeight", "4");
-        marker.setAttributeNS(null, "refX", "2");
-        marker.setAttributeNS(null, "refY", "2");
+        marker.setAttributeNS(null, "markerWidth", "2");
+        marker.setAttributeNS(null, "markerHeight", "2");
+        marker.setAttributeNS(null, "refX", "1");
+        marker.setAttributeNS(null, "refY", "1");
+        //marker.setAttributeNS(null, "markerUnits", "userSpaceOnUse");
+        //marker.setAttributeNS(null, "viewport", );
 
         //now the shape
         Element circle = creationDoc.createElementNS(nameSpace, "circle");
-        circle.setAttributeNS(null, "cx", "2");
-        circle.setAttributeNS(null, "cy", "2");
-        circle.setAttributeNS(null, "r", "2");
+        circle.setAttributeNS(null, "cx", "1");
+        circle.setAttributeNS(null, "cy", "1");
+        circle.setAttributeNS(null, "r", "1");
         circle.setAttributeNS(null, "stroke", "none");
-        circle.setAttributeNS(null, "fill", color);
+        circle.setAttributeNS(null, "fill", "rgb(" + color.getRed() + ", " + color.getGreen() + ", " + color.getBlue() + ")");
 
         marker.appendChild(circle);
         return marker;

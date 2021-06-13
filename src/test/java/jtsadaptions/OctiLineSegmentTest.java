@@ -2,7 +2,6 @@ package jtsadaptions;
 
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
-import morph.LineSegmentNotOctilinear;
 
 import static org.junit.jupiter.api.Assertions.*;
 

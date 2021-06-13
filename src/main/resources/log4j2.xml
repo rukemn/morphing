@@ -18,6 +18,9 @@
         <Logger name="io" level="trace" additivity="true">
             <AppenderRef ref="ConsoleAppender"/>
         </Logger>
+        <Logger name="scoringStrategies" level="trace" additivity="true">
+            <AppenderRef ref="ConsoleAppender"/>
+        </Logger>
         <Root level="ALL">
             <AppenderRef ref="FileAppender"/>
         </Root>

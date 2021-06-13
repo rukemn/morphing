@@ -2,35 +2,34 @@ package scoringStrategies;
 
 import jtsadaptions.OctiLineSegment;
 import jtsadaptions.OctiLineString;
+import morph.MatrixElement;
 import org.locationtech.jts.geom.Coordinate;
 
 /**
  * only considers whether or not its a match, in contrast to taking edge length or distance in consideration
  */
-public class FlatScoreStrategy extends StrategyDectorator{
+public class FlatScoreStrategy implements OctiMatchStrategy {
 
-    public FlatScoreStrategy(OctiMatchStrategy underlyingStrategy) {
-        super(underlyingStrategy);
-    }
+    double matchScore = -1;
+    double indelScore = 0;
 
     @Override
     public void initStrategy(OctiLineString sourceString, OctiLineString targetString) {
-        //maximum diagonal elements/ matches total score >= 0
-        //maxScore = Math.min(sourceString.size() , targetString.size());
+        //maximumMatches = Math.min(sourceString.size(),targetString.size());
     }
 
     @Override
-    public double match(OctiLineSegment sourceSegment, OctiLineSegment targetSegment) {
-        return -1;
+    public double match(MatrixElement previous, OctiLineSegment sourceSegment, OctiLineSegment targetSegment) {
+        return matchScore;
     }
 
     @Override
-    public double deleteOnto(OctiLineSegment segmentToBeDeleted, Coordinate point) {
-        return 1;
+    public double deleteOnto(MatrixElement previous,OctiLineSegment segmentToBeDeleted, Coordinate point) {
+        return indelScore;
     }
 
     @Override
-    public double createFrom(Coordinate creationPoint, OctiLineSegment segmentToBeCreated) {
-        return 1;
+    public double createFrom(MatrixElement previous,Coordinate creationPoint, OctiLineSegment segmentToBeCreated) {
+        return indelScore;
     }
 }

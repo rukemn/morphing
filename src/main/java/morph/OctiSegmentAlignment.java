@@ -15,6 +15,4 @@ public interface OctiSegmentAlignment {
 
     public OctiLineSegment.Orientation getOrientation();
     public Operation getOperation();
-
-
 }

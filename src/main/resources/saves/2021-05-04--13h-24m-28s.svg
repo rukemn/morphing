@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.0//EN'
+          'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg contentScriptType="text/ecmascript" xmlns:xlink="http://www.w3.org/1999/xlink" zoomAndPan="magnify" contentStyleType="text/css" viewBox="140 460 231 231" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" version="1.0"
+><rect fill="yellow" x="140.0" width="100%" height="100%" y="460.0"
+  /><g
+  ><g
+    ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKER-ANIMATION-1bd7f06f-61ac-4937-a439-3596bd801397" markerWidth="2" refX="1"
+      ><circle fill="red" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKERSTART-ANIMATION-1bd7f06f-61ac-4937-a439-3596bd801397" markerWidth="2" refX="1"
+      ><circle fill="purple" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><polyline points="" marker-mid="url(#MARKER-ANIMATION-1bd7f06f-61ac-4937-a439-3596bd801397)" fill="none" id="ANIMATION-1bd7f06f-61ac-4937-a439-3596bd801397" stroke="red" marker-start="url(#MARKERSTART-ANIMATION-1bd7f06f-61ac-4937-a439-3596bd801397)" stroke-width="1%"
+      ><animate dur="5.0s" from="192.0,560.0 192.0,560.0 256.0,624.0 256.0,624.0 320.0,560.0 320.0,560.0 192.0,560.0 " attributeName="points" repeatCount="indefinite" to="160.0,480.0 160.0,672.0 160.0,672.0 352.0,672.0 352.0,672.0 352.0,480.0 160.0,480.0 "
+      /></polyline
+    ></g
+    ><g
+    ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKER-SOURCE-1bd7f06f-61ac-4937-a439-3596bd801397" markerWidth="2" refX="1"
+      ><circle fill="green" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><polyline fill="none" id="SOURCE-1bd7f06f-61ac-4937-a439-3596bd801397" stroke-width="1%" marker-mid="url(#MARKER-SOURCE-1bd7f06f-61ac-4937-a439-3596bd801397)" points="192.0,560.0 256.0,624.0 320.0,560.0 192.0,560.0" stroke="green"
+    /></g
+    ><g
+    ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKER-TARGET-1bd7f06f-61ac-4937-a439-3596bd801397" markerWidth="2" refX="1"
+      ><circle fill="green" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><polyline fill="none" id="TARGET-1bd7f06f-61ac-4937-a439-3596bd801397" stroke-width="1%" marker-mid="url(#MARKER-TARGET-1bd7f06f-61ac-4937-a439-3596bd801397)" points="160.0,480.0 160.0,672.0 352.0,672.0 352.0,480.0 160.0,480.0" stroke="green"
+    /></g
+  ></g
+></svg
+>

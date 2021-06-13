@@ -5,7 +5,7 @@ import jtsadaptions.OctiLineString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.Geometry;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -15,36 +15,40 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.*;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-//todo interface this to allow for more Extractors which can be plugged in
-public class SvgPolygonExtractor {
+public class SvgPolygonExtractor implements PolygonExtractorInterface {
 
     private static Logger logger = LogManager.getLogger();
+
     enum action {STARTPOINT, LINETO_SECOND, LINETO_THIRD, NEXTLINE_OR_END}
 
     private final List<OctiLineString> octiLineStrings = new ArrayList<>();
 
     public static void main(String[] args) {
-        SvgPolygonExtractor x = new SvgPolygonExtractor();
+        SvgPolygonExtractor extractor = new SvgPolygonExtractor();
         try {
-            x.parseSvg("src/main/resources/SquareSquare");
+            extractor.parseFile(Paths.get("src/main/resources/svg/SquareSquare").toUri());
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (FileParseException e) {
+            e.printStackTrace();
         }
-        logger.info("Extracted " + x.numberOfParsedOctiLineStrings() + " polygons");
+        logger.info("Extracted " + extractor.numberOfParsedGeometries());
     }
 
-    public void parseSvg(String uri) throws IOException {
-        // clearing case of reuse
+    public void parseFile(URI uri) throws IOException, FileParseException {
+        // clearing in case of reuse
         octiLineStrings.clear();
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         NodeList paths = null;
         try {
             DocumentBuilder docBuilder = factory.newDocumentBuilder();
-            Document document = docBuilder.parse(uri);
+            Document document = docBuilder.parse(uri.toString());
 
             String xpathExpression = "//path/@d";
 
@@ -58,29 +62,39 @@ public class SvgPolygonExtractor {
 
                 List<Coordinate> points = parsePath(paths.item(i).getNodeValue());
                 logger.trace("path " + i + " beginn");
-                for (Coordinate c : points) logger.trace("path" + i +": Point " + c.toString());
+                for (Coordinate c : points) logger.trace("path" + i + ": Point " + c.toString());
 
                 Coordinate[] coords = points.toArray(Coordinate[]::new);
                 octiLineStrings.add(OctiGeometryFactory.OCTI_FACTORY.createOctiLineString(coords));
             }
 
-        } catch(IOException io) {
+        } catch (IOException io) {
             io.printStackTrace();
             throw io;
-        }catch(ParserConfigurationException | SAXException |  XPathExpressionException parsing) {
+        } catch (ParserConfigurationException | SAXException | XPathExpressionException parsing) {
             parsing.printStackTrace();
+            throw new FileParseException("something internal went wrong");
         }
     }
 
-    public int numberOfParsedOctiLineStrings(){
+    @Override
+    public int numberOfParsedGeometries() {
         return octiLineStrings.size();
     }
-    public OctiLineString getNthOctiLineString(int index){
+
+    @Override
+    public OctiLineString getNthGeometry(int index) {
         return octiLineStrings.get(index);
+    }
+
+    @Override
+    public List<Geometry> getGeometryList() {
+        return new ArrayList<>(octiLineStrings);
     }
 
     /**
      * Parses valid LinearRings
+     *
      * @param svgPathString the svg path string representing a "d" element
      * @return the Coordinates associated with the LinearRing
      * @throws IllegalArgumentException if the argument string can't be parsed
@@ -105,7 +119,7 @@ public class SvgPolygonExtractor {
                     y_coord = Double.parseDouble(splitted[i + 2]);
 
                     //in case of redundant prefix M's
-                    if(expectedAction == action.LINETO_SECOND) coords.remove(0);
+                    if (expectedAction == action.LINETO_SECOND) coords.remove(0);
                     coords.add(new Coordinate(x_coord, y_coord));
 
                     expectedAction = SvgPolygonExtractor.action.LINETO_SECOND;
@@ -114,8 +128,8 @@ public class SvgPolygonExtractor {
 
                 case "L":
                     if (expectedAction != action.LINETO_SECOND &&
-                        expectedAction != action.LINETO_THIRD &&
-                        expectedAction != action.NEXTLINE_OR_END) throw new IllegalArgumentException(); //error
+                            expectedAction != action.LINETO_THIRD &&
+                            expectedAction != action.NEXTLINE_OR_END) throw new IllegalArgumentException(); //error
 
                     if (i + 2 >= splitted.length) return coords;
 
