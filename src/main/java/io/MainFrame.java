@@ -88,11 +88,11 @@ public class MainFrame extends JFrame {
     private JCheckBox showSourceCheckBox;
     private JCheckBox showTargetCheckBox;
 
-    private JLabel statusLabel= new JLabel("status here");
+    private JLabel statusLabel = new JLabel("status here");
     private JButton saveButton;
     private JButton runButton;
 
-    private class Conig {
+    private class Config {
         private URI sourceUri, targetUri, singleUri;
         private boolean singleFileInput; //either use bothUri or (sourceUri and targetUri)
         private OctiMatchStrategy segmentStrategy;
@@ -149,8 +149,8 @@ public class MainFrame extends JFrame {
     }
 
     ;
-    private MainFrame.Conig conig = new Conig();
-    private SvgGenerator.Config animationConfig = new SvgGenerator.Config(false, false, true, Color.green,Color.blue, Color.black, Color.red, Color.white);
+    private Config config = new Config();
+    private SvgGenerator.Config animationConfig = new SvgGenerator.Config(false, false, true, Color.green, Color.blue, Color.black, Color.red, Color.white);
 
     public MainFrame() {
         super("Polygonmorphing");
@@ -201,7 +201,7 @@ public class MainFrame extends JFrame {
                 this.animationConfig.showSource = false;
             }
         });
-        animnationOptionsPanel.add(showAnimationCheckBox,gbc);
+        animnationOptionsPanel.add(showAnimationCheckBox, gbc);
         gbc.gridx++;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -210,7 +210,7 @@ public class MainFrame extends JFrame {
         sourceColorPicker.addActionListener(e -> {
             //JColorChooser colorChooser = new JColorChooser();
             Color sourceColor = JColorChooser.showDialog(animnationOptionsPanel, "Farbauswahl source", null);
-            if (! (sourceColor == null)) {
+            if (!(sourceColor == null)) {
                 this.animationConfig.sourceColor = sourceColor;
                 sourceColorPicker.setBackground(this.animationConfig.sourceColor);
             }
@@ -244,7 +244,7 @@ public class MainFrame extends JFrame {
         targetColorPicker.addActionListener(e -> {
             //JColorChooser colorChooser = new JColorChooser();
             Color targetColor = JColorChooser.showDialog(animnationOptionsPanel, "Farbauswahl target", null);
-            if (! (targetColor == null)){
+            if (!(targetColor == null)) {
                 this.animationConfig.targetColor = targetColor;
                 targetColorPicker.setBackground(this.animationConfig.targetColor);
             }
@@ -267,7 +267,7 @@ public class MainFrame extends JFrame {
                 this.animationConfig.showAnimation = false;
             }
         });
-        animnationOptionsPanel.add(showAnimation,gbc);
+        animnationOptionsPanel.add(showAnimation, gbc);
         gbc.gridx++;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -276,7 +276,7 @@ public class MainFrame extends JFrame {
         animnationColorPicker.addActionListener(e -> {
             //JColorChooser colorChooser = new JColorChooser();
             Color animationColor = JColorChooser.showDialog(animnationOptionsPanel, "Farbauswahl animation", null);
-            if (! (animationColor == null)){
+            if (!(animationColor == null)) {
                 this.animationConfig.animationColor = animationColor;
                 animnationColorPicker.setBackground(this.animationConfig.animationColor);
             }
@@ -294,7 +294,7 @@ public class MainFrame extends JFrame {
         startpointColorPicker.addActionListener(e -> {
             //JColorChooser colorChooser = new JColorChooser();
             Color startpointColor = JColorChooser.showDialog(animnationOptionsPanel, "Farbauswahl Startpunkt", null);
-            if (! (startpointColor == null)){
+            if (!(startpointColor == null)) {
                 this.animationConfig.startPointColor = startpointColor;
                 startpointColorPicker.setBackground(this.animationConfig.startPointColor);
             }
@@ -306,13 +306,13 @@ public class MainFrame extends JFrame {
 
     private void setUpDefaultPathConfig() {
         File sourceFile = new File("./src/main/resources/svg/bone.svg");
-        this.conig.setSourceUri(sourceFile.toURI());
+        this.config.setSourceUri(sourceFile.toURI());
 
         File targetFile = new File("./src/main/resources/svg/octagonSquare.svg");
-        this.conig.setTargetUri(targetFile.toURI());
+        this.config.setTargetUri(targetFile.toURI());
 
         File bothInOneFile = new File("./src/main/resources/svg/octagonSquare.svg");
-        this.conig.setBothUri(bothInOneFile.toURI());
+        this.config.setBothUri(bothInOneFile.toURI());
     }
 
     private JPanel setUpCommandPanel() {
@@ -364,10 +364,10 @@ public class MainFrame extends JFrame {
         twoInputFilesCheckbox.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 logger.debug("selected dual mode");
-                this.conig.setSingleFileInput(false);
+                this.config.setSingleFileInput(false);
             } else if (e.getStateChange() == ItemEvent.DESELECTED) {
                 logger.debug("selected mono mode");
-                this.conig.setSingleFileInput(true);
+                this.config.setSingleFileInput(true);
             }
         });
         gbc.gridx = 0;
@@ -398,13 +398,13 @@ public class MainFrame extends JFrame {
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL; // take up the max width of a button in this column, no weight though
         loadSourceFileButton = new JButton();
-        loadSourceFileButton.setText(shortenedFileButtonText(this.conig.getSourceUri().toString())); //set to default
+        loadSourceFileButton.setText(shortenedFileButtonText(this.config.getSourceUri().toString())); //set to default
         loadSourceFileButton.addActionListener(e -> {
             JFileChooser fc = new JFileChooser(defaultFilePath);
             int choice = fc.showOpenDialog(filePanel);
             if (choice == JFileChooser.APPROVE_OPTION) {
                 File file = fc.getSelectedFile();
-                this.conig.setSourceUri(file.toURI());
+                this.config.setSourceUri(file.toURI());
                 loadSourceFileButton.setText(shortenedFileButtonText(file.toURI().toString()));
                 logger.trace("source set to " + file.toURI().toString());
             }
@@ -422,13 +422,13 @@ public class MainFrame extends JFrame {
 
         // no spacer needed this row
         loadTargetFileButton = new JButton();
-        loadTargetFileButton.setText(shortenedFileButtonText(this.conig.getTargetUri().toString())); //set to default
+        loadTargetFileButton.setText(shortenedFileButtonText(this.config.getTargetUri().toString())); //set to default
         loadTargetFileButton.addActionListener(e -> {
             JFileChooser fc = new JFileChooser(defaultFilePath);
             int choice = fc.showOpenDialog(filePanel);
             if (choice == JFileChooser.APPROVE_OPTION) {
                 File file = fc.getSelectedFile();
-                this.conig.setTargetUri(file.toURI());
+                this.config.setTargetUri(file.toURI());
                 loadTargetFileButton.setText(shortenedFileButtonText(file.toURI().toString()));
                 logger.trace("target set to " + file.toURI().toString());
             }
@@ -464,13 +464,13 @@ public class MainFrame extends JFrame {
         filePanel.add(loadBothLabel, gbc);
 
         loadSourceAndTargetFileButton = new JButton();
-        loadSourceAndTargetFileButton.setText(shortenedFileButtonText(this.conig.getBothUri().toString())); //set to default
+        loadSourceAndTargetFileButton.setText(shortenedFileButtonText(this.config.getBothUri().toString())); //set to default
         loadSourceAndTargetFileButton.addActionListener(e -> {
             JFileChooser fc = new JFileChooser(defaultFilePath);
             int choice = fc.showOpenDialog(loadSourceAndTargetFileButton);
             if (choice == JFileChooser.APPROVE_OPTION) {
                 File file = fc.getSelectedFile();
-                this.conig.setBothUri(file.toURI());
+                this.config.setBothUri(file.toURI());
                 String uriString = file.toURI().toString();
                 loadSourceAndTargetFileButton.setText(shortenedFileButtonText(uriString));
                 logger.trace("mono set to " + file.toURI().toString());
@@ -486,7 +486,7 @@ public class MainFrame extends JFrame {
         selectionModes.add(twoInputFilesCheckbox);
         selectionModes.add(singleInputFileCheckbox);
         singleInputFileCheckbox.setSelected(true);
-        this.conig.setSingleFileInput(true);
+        this.config.setSingleFileInput(true);
         return filePanel;
     }
 
@@ -535,13 +535,13 @@ public class MainFrame extends JFrame {
         gbc.weightx = 1;
         gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(0, 0, 5, 0);
-        JLabel polyDistanceLabel = new JLabel("Startpoint selection");
+        JLabel polyDistanceLabel = new JLabel("Startpoint Selection");
         strategyPanel.add(polyDistanceLabel, gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 0;//dynamically also here
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        String[] polyDistanceStrings = new String[]{"Closest Points","Best Match Segment", "Corner: Bottom left", "Corner: Top right", "Corner: Top left", "Corner: Bottom right"};
+        String[] polyDistanceStrings = new String[]{"Closest Points", "Best Match Segment", "Corner: Bottom left", "Corner: Top right", "Corner: Top left", "Corner: Bottom right"};
         startPointPicker = new JComboBox<>(polyDistanceStrings);
         startPointPicker.addItemListener(itemEvent -> {
             if (itemEvent.getStateChange() == ItemEvent.SELECTED) setStrategy();
@@ -551,7 +551,7 @@ public class MainFrame extends JFrame {
         gbc.gridx = 0;
         gbc.gridy++;
         gbc.weightx = 1;
-        JLabel operationCostLabel = new JLabel("Operation Stategy");
+        JLabel operationCostLabel = new JLabel("Operation Strategy", SwingConstants.CENTER);
         strategyPanel.add(operationCostLabel, gbc);
 
         gbc.gridx = 1;
@@ -667,7 +667,7 @@ public class MainFrame extends JFrame {
     /**
      * Whenever a strategy-{@link JComboBox} changes, call this method to get the new total {@link OctiMatchStrategy}
      * from {@link ScoringStrategyFactory}.
-     * This method sets the {@link MainFrame.Conig}
+     * This method sets the {@link Config}
      */
     private void setStrategy() {
         String strategyName = (String) this.strategyPicker.getSelectedItem();
@@ -685,9 +685,9 @@ public class MainFrame extends JFrame {
         List<String> visibilityDecoratorList = new ArrayList<>();
         visibilityDecoratorList.add(visibilityDecorators);
 
-        this.conig.setStartPointStrategy(startPointStrategy);
+        this.config.setStartPointStrategy(startPointStrategy);
         try {
-            this.conig.setSegmentStrategy(ScoringStrategyFactory.getStrategy(strategyName, strategyDecoratorList,visibilityDecoratorList));
+            this.config.setSegmentStrategy(ScoringStrategyFactory.getStrategy(strategyName, strategyDecoratorList, visibilityDecoratorList));
         } catch (StrategyInitializationException e) {
             logger.trace("Cant build a strategy from current selection");
             statusLabel.setText("Cant build a strategy from current selection");
@@ -695,7 +695,7 @@ public class MainFrame extends JFrame {
         }
     }
 
-    private void calcSvg(MainFrame.Conig configuration) {
+    private void calcSvg(Config configuration) {
         Geometry sourceGeometry, targetGeometry;
         StringBuilder sb = new StringBuilder();
         if (configuration.isSingleFileInput()) {
@@ -790,7 +790,7 @@ public class MainFrame extends JFrame {
             return;
         }
 
-        OctiLineMatcher olm = new OctiLineMatcher(srcString, tarString, this.conig.getSegmentStrategy(), this.conig.startPointStrategy);
+        OctiLineMatcher olm = new OctiLineMatcher(srcString, tarString, this.config.getSegmentStrategy(), this.config.startPointStrategy);
         OctiStringAlignment stringAlignment;
         try {
             stringAlignment = olm.getAlignment();
@@ -806,13 +806,13 @@ public class MainFrame extends JFrame {
         this.doc = svgGenerator.generateSVG(stringAlignment);
         this.canvas.setSVGDocument(doc);
         this.canvas.setDocumentState(JSVGComponent.ALWAYS_DYNAMIC);
-        if(docInUse) setPauseButtonState(false);
+        if (docInUse) setPauseButtonState(false);
     }
 
     private JPanel setUpAnimationControlPanel() {
 
         JPanel actionsPanel = new JPanel(new FlowLayout());
-        Border border = new TitledBorder("Animation Control");
+        Border border = new TitledBorder("Animation Time Control");
         actionsPanel.setBorder(border);
         JSlider slider = createAnimationSlider();
         actionsPanel.add(createAnimationPauseButton()); //button to the left
@@ -912,7 +912,7 @@ public class MainFrame extends JFrame {
         runButton.addActionListener(actionEvent -> {
             statusLabel.setText("");
             try {
-                calcSvg(this.conig);
+                calcSvg(this.config);
                 //if no problems, gvtRenderingCompleted-Event sets the docInUse to true
 
             } catch (Exception e) {

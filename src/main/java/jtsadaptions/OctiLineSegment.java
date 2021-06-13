@@ -10,7 +10,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineSegment;
 
 
-public class OctiLineSegment extends LineSegment implements Octilinear{
+public class OctiLineSegment extends LineSegment implements Octilinear {
     private static final Logger logger = LogManager.getLogger();
     private Orientation orientation = null;
     public static OctiMatchStrategy strategy = new CompleteVisibleDecorator(new VertexDistanceStrategy());
@@ -25,7 +25,7 @@ public class OctiLineSegment extends LineSegment implements Octilinear{
         DOWN_RIGHT,
         DOWN_LEFT;
 
-        static{
+        static {
             UP.opposite = DOWN;
             DOWN.opposite = UP;
             LEFT.opposite = RIGHT;
@@ -35,15 +35,17 @@ public class OctiLineSegment extends LineSegment implements Octilinear{
             UP_LEFT.opposite = DOWN_RIGHT;
             DOWN_LEFT.opposite = UP_RIGHT;
         }
+
         private Orientation opposite;
-        public Orientation opposite(){
+
+        public Orientation opposite() {
             return this.opposite;
         }
     }
 
-    public static void setStrategy(OctiMatchStrategy strategy, OctiLineString source, OctiLineString target){
+    public static void setStrategy(OctiMatchStrategy strategy, OctiLineString source, OctiLineString target) {
         OctiLineSegment.strategy = strategy;
-        strategy.initStrategy(source,target);
+        strategy.initStrategy(source, target);
     }
 
     @Override
@@ -60,11 +62,12 @@ public class OctiLineSegment extends LineSegment implements Octilinear{
 
     /**
      * Determines the segments orientation and sets its orientation accordingly
+     *
      * @param segment the segment to check
      * @return the octilinear orientation
      * @throws LineSegmentNotOctilinear in case the segment isn't octilinear
      */
-    public static Orientation determineOrientation(OctiLineSegment segment) throws LineSegmentNotOctilinear{
+    public static Orientation determineOrientation(OctiLineSegment segment) throws LineSegmentNotOctilinear {
         Orientation orientation = null;
 
         if (segment.isHorizontal()) {
@@ -92,7 +95,7 @@ public class OctiLineSegment extends LineSegment implements Octilinear{
                 orientation = Orientation.UP_LEFT;
         }
 
-        if(orientation == null){
+        if (orientation == null) {
             throw new LineSegmentNotOctilinear(segment);
         }
         segment.orientation = orientation;
@@ -104,17 +107,17 @@ public class OctiLineSegment extends LineSegment implements Octilinear{
         return determineOrientation(this);
     }
 
-    public static double match(MatrixElement previous, OctiLineSegment segment1, OctiLineSegment segment2){
-        return strategy.match(previous,segment1,segment2);
+    public static double match(MatrixElement previous, OctiLineSegment segment1, OctiLineSegment segment2) {
+        return strategy.match(previous, segment1, segment2);
     }
 
-    public static double deleteOnto(MatrixElement previous, OctiLineSegment segmentToBeDeleted, Coordinate point){
+    public static double deleteOnto(MatrixElement previous, OctiLineSegment segmentToBeDeleted, Coordinate point) {
         logger.trace("deletion row " + previous.deletionsInARow);
-        return strategy.deleteOnto(previous,segmentToBeDeleted,point);
+        return strategy.deleteOnto(previous, segmentToBeDeleted, point);
     }
 
-    public static double createFrom(MatrixElement previous, Coordinate creationPoint, OctiLineSegment segmentToBeCreated){
+    public static double createFrom(MatrixElement previous, Coordinate creationPoint, OctiLineSegment segmentToBeCreated) {
         logger.trace("creation row " + previous.deletionsInARow);
-        return strategy.createFrom(previous,creationPoint, segmentToBeCreated);
+        return strategy.createFrom(previous, creationPoint, segmentToBeCreated);
     }
 }

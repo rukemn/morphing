@@ -8,7 +8,7 @@ public class OctiGeometryFactory extends GeometryFactory {
     private static Logger logger = LogManager.getLogger();
     public static final OctiGeometryFactory OCTI_FACTORY = new OctiGeometryFactory(new PrecisionModel());
 
-    public OctiGeometryFactory(PrecisionModel pm){
+    public OctiGeometryFactory(PrecisionModel pm) {
         super(pm);
     }
 
@@ -31,7 +31,7 @@ public class OctiGeometryFactory extends GeometryFactory {
         return createOctiLineString(coordinates != null ? getCoordinateSequenceFactory().create(coordinates) : null);
     }
 
-    public OctiLineString createOctiLineString(LinearRing ring){
+    public OctiLineString createOctiLineString(LinearRing ring) {
         return createOctiLineString(ring.getCoordinateSequence());
     }
 
@@ -45,38 +45,47 @@ public class OctiGeometryFactory extends GeometryFactory {
         return new OctiLineString(coordinates, this);
     }
 
-    /** todo, temporary helper method
+    /**
+     * Helper method to extract an outer OctiLineString from a geometry
+     * If the geom is a
+     * <ul>
+     *     <li>OctiLineString -> geom is returned</li>
+     *     <li>Polygon -> exterior ring is returned</li>
+     *     <li>MultiPolygon -> exterior ring of the biggest polygon is returned</li>
+     * </ul>
+     * All else will throw an exception
      *
-     * @param geom
-     * @return
+     * @param geom the geometry to extract from
+     * @return the extracted OctiLineString
      * @throws Exception
      */
     public OctiLineString convertToOctiLineString(Geometry geom) throws Exception {
         logger.debug("converting geom: " + geom.toText());
-        if(geom instanceof OctiLineString) return (OctiLineString) geom;
+        if (geom instanceof OctiLineString) return (OctiLineString) geom;
         //assumed to be simple
-        if(geom instanceof Polygon){
-            if(geom.isSimple()) return this.createOctiLineString(((Polygon) geom).getExteriorRing().getCoordinateSequence());
+        if (geom instanceof Polygon) {
+            if (geom.isSimple())
+                return this.createOctiLineString(((Polygon) geom).getExteriorRing().getCoordinateSequence());
             Polygon p = (Polygon) geom;
             logger.debug("internal rings: " + p.getNumInteriorRing());
             logger.debug("self intersects " + p.intersects(p));
         }
-        if(geom instanceof LinearRing) return this.createOctiLineString(((LinearRing) geom).getCoordinateSequence());
-        if(geom instanceof LineString) return this.createOctiLineString(((LineString) geom).getCoordinateSequence());
+        if (geom instanceof LinearRing) return this.createOctiLineString(((LinearRing) geom).getCoordinateSequence());
+        if (geom instanceof LineString) return this.createOctiLineString(((LineString) geom).getCoordinateSequence());
 
-        //todo, probably better suited in morph logic
-        if(geom instanceof MultiPolygon) {
+        //todo, probably better suited in separate logic
+        if (geom instanceof MultiPolygon) {
             logger.warn("not implemented yet, returning biggest polygon");
             logger.debug("choosing out of " + geom.getNumGeometries() + " polygons");
-            if(geom.getNumGeometries() == 0) return null;
+            if (geom.getNumGeometries() == 0) return null;
 
             Polygon max = (Polygon) geom.getGeometryN(0);
             double maxPolygonArea = max.getArea();
             double area;
-            for(int i = 0; i<geom.getNumGeometries();i++){
+            for (int i = 0; i < geom.getNumGeometries(); i++) {
                 Polygon p = (Polygon) geom.getGeometryN(i);
                 area = p.getArea();
-                if(area > maxPolygonArea){
+                if (area > maxPolygonArea) {
                     maxPolygonArea = area;
                     max = p;
                 }
@@ -84,7 +93,7 @@ public class OctiGeometryFactory extends GeometryFactory {
             return convertToOctiLineString(max);
 
         }
-        if(geom instanceof GeometryCollection) logger.warn("not implemented yet");
+        if (geom instanceof GeometryCollection) logger.warn("not implemented yet");
         throw new Exception("cant convert");
     }
 }

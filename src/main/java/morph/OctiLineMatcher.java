@@ -169,7 +169,8 @@ public class OctiLineMatcher {
      * Accepted strategy Strings are :
      * <ul>
      *     <li>"Closest Points": selects the points with minimum distance</li>
-     *     <li>"Bottom left": selects the points, which are on the bottom left with respect to their polygon</li>
+     *     <li>"Corner:"": selects the points, which are on the which are on the specified corner with respect to their polygon</li>
+     *     <li>"Best Match Segment" : Select the first points of the edges rated with the overall best Match-Score (using Vertex Distance)</li>
      * </ul>
      * with minimum distance to each other
      *
@@ -200,7 +201,7 @@ public class OctiLineMatcher {
                     }
                 }
             }
-        } else if(startPointStrategy.substring(0,7).equals("Corner:")){ // check the corners, O(n + m)
+        } else if (startPointStrategy.substring(0, 7).equals("Corner:")) { // check the corners, O(n + m)
             boolean right, top;
             switch (startPointStrategy) {
                 case "Corner: Bottom left": // O( max(n.m))
@@ -229,32 +230,32 @@ public class OctiLineMatcher {
                     right = false;
                     top = false;
             }
-            Pair<Integer,Double> firstMinima = getMinimumItem(first,right,top);
-            Pair<Integer,Double> secondMinima = getMinimumItem(second,right,top);
+            Pair<Integer, Double> firstMinima = getMinimumItem(first, right, top);
+            Pair<Integer, Double> secondMinima = getMinimumItem(second, right, top);
             startPoint_indices[0] = firstMinima.first();
             startPoint_indices[1] = secondMinima.first();
 
-        }else if(startPointStrategy.equals("Best Match Segment")) { // O(n²)
-            try{
-                logger.info("determining starting point by selecting segment-startpoint of best-scoring matching segments");
-                OctiMatchStrategy segmentStrategy = ScoringStrategyFactory.getStrategy("BaseMatch");
+        } else if (startPointStrategy.equals("Best Match Segment")) { // O(n²)
+            try {
+                logger.info("determining starting point by selecting segment-startpoint of best-scoring matching segments (Vertex Distance)");
+                OctiMatchStrategy segmentStrategy = ScoringStrategyFactory.getStrategy("Vertex Distance");
                 Double minScore = null; // java needs this to be initialized, value doesn't matter though
                 Double score;
-                for(int firstVertexIndex = 1 ; firstVertexIndex < first.getNumPoints();firstVertexIndex++){
-                    for(int secondVertexIndex = 1; secondVertexIndex < second.getNumPoints(); secondVertexIndex++){
+                for (int firstVertexIndex = 1; firstVertexIndex < first.getNumPoints(); firstVertexIndex++) {
+                    for (int secondVertexIndex = 1; secondVertexIndex < second.getNumPoints(); secondVertexIndex++) {
                         OctiLineSegment firstSegment = first.getSegmentBeforeNthPoint(firstVertexIndex);
                         OctiLineSegment secondSegment = second.getSegmentBeforeNthPoint(secondVertexIndex);
 
                         //only check if match possible
-                        if(firstSegment.getOrientation() == secondSegment.getOrientation()){
-                            score  = segmentStrategy.match(null,firstSegment,secondSegment);
-                            logger.trace("matchable " +firstVertexIndex + ", " + secondVertexIndex +": " + score);
+                        if (firstSegment.getOrientation() == secondSegment.getOrientation()) {
+                            score = segmentStrategy.match(null, firstSegment, secondSegment);
+                            logger.trace("matchable " + firstVertexIndex + ", " + secondVertexIndex + ": " + score);
 
                             //first occurence will be null, all later evaluations will do correct min-check
-                            if(minScore == null || score < minScore){
+                            if (minScore == null || score < minScore) {
                                 //startpoint will be the beginning of the minScore-Match-Segement, opposed to segmentEndpoint
-                                startPoint_indices[0] = firstVertexIndex -1; //
-                                startPoint_indices[1] = secondVertexIndex -1;
+                                startPoint_indices[0] = firstVertexIndex - 1; //
+                                startPoint_indices[1] = secondVertexIndex - 1;
                                 minScore = score;
                             }
                         }
@@ -272,16 +273,16 @@ public class OctiLineMatcher {
     }
 
 
-    private Pair<Integer, Double> getMinimumItem(LineString lineString, boolean subtractFromMaxX, boolean subtractFromMaxY){
-        double substractorX = subtractFromMaxX ? -1.0: 1.0;
-        double substractorY = subtractFromMaxY ? -1.0: 1.0;
+    private Pair<Integer, Double> getMinimumItem(LineString lineString, boolean subtractFromMaxX, boolean subtractFromMaxY) {
+        double substractorX = subtractFromMaxX ? -1.0 : 1.0;
+        double substractorY = subtractFromMaxY ? -1.0 : 1.0;
         double minuendX = subtractFromMaxX ? getMaxXValue(lineString) : 0.0;
         double minuendY = subtractFromMaxY ? getMaxYValue(lineString) : 0.0;
         double min, currentmin;
         Integer minIndex = 0;
-        min = (minuendX + substractorX * lineString.getCoordinateN(0).getX()) +  (minuendY + substractorY * lineString.getCoordinateN(0).getY());
+        min = (minuendX + substractorX * lineString.getCoordinateN(0).getX()) + (minuendY + substractorY * lineString.getCoordinateN(0).getY());
         for (int i = 1; i < lineString.getNumPoints(); i++) {
-            currentmin = (minuendX + substractorX * lineString.getCoordinateN(i).getX()) +  (minuendY + substractorY * lineString.getCoordinateN(i).getY());
+            currentmin = (minuendX + substractorX * lineString.getCoordinateN(i).getX()) + (minuendY + substractorY * lineString.getCoordinateN(i).getY());
             if (currentmin < min) {
                 min = currentmin;
                 minIndex = i;

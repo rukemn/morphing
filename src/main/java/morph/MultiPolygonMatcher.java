@@ -1,7 +1,6 @@
 package morph;
 
 import io.FileParseException;
-import io.SvgExporter;
 import io.WktPolygonExtractor;
 import jtsadaptions.OctiGeometryFactory;
 import jtsadaptions.OctiLineString;
@@ -18,6 +17,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 /**
+ * Class not in use yet, just for some experiments to handle multipolygons
  * Purpose of this class is to have 2 Multipolygons source and target be split into OctiLineStrings and try to match
  * them as bijectively as possibly
  */
@@ -72,16 +72,15 @@ public class MultiPolygonMatcher {
                     e.printStackTrace();
                 }
             }
-           alignmentList.add(alignment);
+            alignmentList.add(alignment);
         }
-        SvgExporter exporter = new SvgExporter(alignmentList);
-        exporter.show();
 
     }
 
     /**
      * Assertion: for each source/target there is exactly one polygon which contains startNode
-     *  todo use that startNode to match the 2 polygons
+     * todo use that startNode to match the 2 polygons
+     *
      * @param source
      * @param target
      * @param startNode

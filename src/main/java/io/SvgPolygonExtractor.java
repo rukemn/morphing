@@ -20,27 +20,28 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SvgPolygonExtractor implements PolygonExtractorInterface{
+public class SvgPolygonExtractor implements PolygonExtractorInterface {
 
     private static Logger logger = LogManager.getLogger();
+
     enum action {STARTPOINT, LINETO_SECOND, LINETO_THIRD, NEXTLINE_OR_END}
 
     private final List<OctiLineString> octiLineStrings = new ArrayList<>();
 
     public static void main(String[] args) {
-        SvgPolygonExtractor x = new SvgPolygonExtractor();
+        SvgPolygonExtractor extractor = new SvgPolygonExtractor();
         try {
-            x.parseFile(Paths.get("src/main/resources/SquareSquare").toUri());
+            extractor.parseFile(Paths.get("src/main/resources/svg/SquareSquare").toUri());
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (FileParseException e){
+        } catch (FileParseException e) {
             e.printStackTrace();
         }
-        logger.info("Extracted " + x.numberOfParsedGeometries());
+        logger.info("Extracted " + extractor.numberOfParsedGeometries());
     }
 
     public void parseFile(URI uri) throws IOException, FileParseException {
-        // clearing case of reuse
+        // clearing in case of reuse
         octiLineStrings.clear();
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -61,27 +62,28 @@ public class SvgPolygonExtractor implements PolygonExtractorInterface{
 
                 List<Coordinate> points = parsePath(paths.item(i).getNodeValue());
                 logger.trace("path " + i + " beginn");
-                for (Coordinate c : points) logger.trace("path" + i +": Point " + c.toString());
+                for (Coordinate c : points) logger.trace("path" + i + ": Point " + c.toString());
 
                 Coordinate[] coords = points.toArray(Coordinate[]::new);
                 octiLineStrings.add(OctiGeometryFactory.OCTI_FACTORY.createOctiLineString(coords));
             }
 
-        } catch(IOException io) {
+        } catch (IOException io) {
             io.printStackTrace();
             throw io;
-        }catch(ParserConfigurationException | SAXException |  XPathExpressionException parsing) {
+        } catch (ParserConfigurationException | SAXException | XPathExpressionException parsing) {
             parsing.printStackTrace();
             throw new FileParseException("something internal went wrong");
         }
     }
+
     @Override
-    public int numberOfParsedGeometries(){
+    public int numberOfParsedGeometries() {
         return octiLineStrings.size();
     }
 
     @Override
-    public OctiLineString getNthGeometry(int index){
+    public OctiLineString getNthGeometry(int index) {
         return octiLineStrings.get(index);
     }
 
@@ -92,6 +94,7 @@ public class SvgPolygonExtractor implements PolygonExtractorInterface{
 
     /**
      * Parses valid LinearRings
+     *
      * @param svgPathString the svg path string representing a "d" element
      * @return the Coordinates associated with the LinearRing
      * @throws IllegalArgumentException if the argument string can't be parsed
@@ -116,7 +119,7 @@ public class SvgPolygonExtractor implements PolygonExtractorInterface{
                     y_coord = Double.parseDouble(splitted[i + 2]);
 
                     //in case of redundant prefix M's
-                    if(expectedAction == action.LINETO_SECOND) coords.remove(0);
+                    if (expectedAction == action.LINETO_SECOND) coords.remove(0);
                     coords.add(new Coordinate(x_coord, y_coord));
 
                     expectedAction = SvgPolygonExtractor.action.LINETO_SECOND;
@@ -125,8 +128,8 @@ public class SvgPolygonExtractor implements PolygonExtractorInterface{
 
                 case "L":
                     if (expectedAction != action.LINETO_SECOND &&
-                        expectedAction != action.LINETO_THIRD &&
-                        expectedAction != action.NEXTLINE_OR_END) throw new IllegalArgumentException(); //error
+                            expectedAction != action.LINETO_THIRD &&
+                            expectedAction != action.NEXTLINE_OR_END) throw new IllegalArgumentException(); //error
 
                     if (i + 2 >= splitted.length) return coords;
 
