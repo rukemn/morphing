@@ -39,21 +39,18 @@ dependencies {
     compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.14.0'
 }
 
+task runGui(dependsOn: 'classes', type: JavaExec){
+    main = 'io.MainFrame'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
 task runOctiLineMatcher(dependsOn: 'classes', type: JavaExec){
     main = 'morph.OctiLineMatcher'
     classpath = sourceSets.main.runtimeClasspath
 }
 
-task runSvgGUI(dependsOn: 'classes', type: JavaExec){
-    main = 'io.SvgExporter'
-    classpath = sourceSets.main.runtimeClasspath
-}
 
-task runSvgGUIwithArgs(dependsOn: 'classes', type: JavaExec){
-    main = 'io.SvgExporter'
-    classpath = sourceSets.main.runtimeClasspath
-    args 'src/main/resources/squareRightBoomerang.svg'
-}
+
 
 test{
     useJUnitPlatform()
