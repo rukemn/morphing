@@ -64,7 +64,7 @@ public class SvgGenerator {
      * Pauses all animations in the document and returns its current animation progress/time
      * 0 represents the
      *
-     * @param doc
+     * @param doc the SVGDOcument which will be cast into SVGOMDocument to pause
      * @return the point in time the animation was paused at
      */
     public synchronized static float pause(SVGDocument doc) {
@@ -89,6 +89,7 @@ public class SvgGenerator {
      * if a value smaller than 0 is given , the animation time is set to its start
      * if a value bigger than 1 is given, the animation time is set to its end (via time = 0.0.9999999f)
      *
+     * @param doc the document to have its time set
      * @param time the time
      */
     public static void setAnimationTime(SVGDocument doc, float time) {
@@ -164,12 +165,12 @@ public class SvgGenerator {
      * returns the dimensions of the doc
      * maybe move to more appropriate place
      * currently searching for:
-     * <l>
+     * <ul>
      * <li>viewBox</li>
-     * </l>
+     * </ul>
      *
-     * @param doc
-     * @return
+     * @param doc the Document to extract the viewBox from
+     * @return the extracted Dimensions
      */
     public static Dimension retrieveDimension(SVGDocument doc) {
         int width = Integer.parseInt(doc.getDocumentElement().getAttributeNodeNS(null, "viewBox").getValue().split(" ")[2]);
@@ -316,6 +317,7 @@ public class SvgGenerator {
      * @param coordinates the linestring from which the "points"-attribute of the Polyline-Element is derived
      * @param id          the id the Polyline-Element is tagged with
      * @param baseColor   the color in which the linestring is to be painted
+     * @param startPointColor the color for the <code>marker-start</code> element
      * @return the newly created polyline-Element
      */
     public Element createPolyLineElement(SVGDocument creationDoc, CoordinateSequence coordinates, String id, Color baseColor, Color startPointColor) {

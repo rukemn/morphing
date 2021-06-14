@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.0//EN'
+          'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg contentScriptType="text/ecmascript" xmlns:xlink="http://www.w3.org/1999/xlink" zoomAndPan="magnify" contentStyleType="text/css" viewBox="73 540 269 231" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" version="1.0"
+><rect fill="rgb(255, 255, 255)" x="73.0" width="100%" height="100%" y="540.0"
+  /><g
+  ><g
+    ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKER-ANIMATION-2f436d3c-ebba-4a27-a3a4-3ae540d1f338" markerWidth="2" refX="1"
+      ><circle fill="rgb(0, 0, 0)" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKERSTART-ANIMATION-2f436d3c-ebba-4a27-a3a4-3ae540d1f338" markerWidth="2" refX="1"
+      ><circle fill="rgb(255, 0, 0)" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><polyline points="" marker-mid="url(#MARKER-ANIMATION-2f436d3c-ebba-4a27-a3a4-3ae540d1f338)" fill="none" id="ANIMATION-2f436d3c-ebba-4a27-a3a4-3ae540d1f338" stroke="rgb(0, 0, 0)" marker-start="url(#MARKERSTART-ANIMATION-2f436d3c-ebba-4a27-a3a4-3ae540d1f338)" stroke-width="1%"
+      ><animate dur="5.0s" from="160.0,704.0 192.0,704.0 192.0,720.0 192.0,720.0 224.0,720.0 224.0,704.0 240.0,688.0 272.0,688.0 272.0,688.0 272.0,656.0 256.0,640.0 256.0,640.0 256.0,608.0 256.0,608.0 256.0,608.0 256.0,608.0 208.0,608.0 208.0,624.0 192.0,640.0 176.0,624.0 176.0,624.0 144.0,656.0 160.0,672.0 160.0,672.0 160.0,672.0 160.0,704.0 160.0,704.0 160.0,704.0 " attributeName="points" repeatCount="indefinite" to="144.0,720.0 160.0,720.0 160.0,720.0 192.0,752.0 240.0,752.0 240.0,752.0 256.0,736.0 304.0,736.0 320.0,720.0 320.0,688.0 304.0,672.0 320.0,656.0 320.0,608.0 288.0,576.0 240.0,576.0 224.0,560.0 176.0,560.0 176.0,560.0 144.0,592.0 144.0,592.0 128.0,592.0 96.0,624.0 112.0,640.0 112.0,672.0 96.0,672.0 96.0,704.0 128.0,736.0 144.0,720.0 "
+      /></polyline
+    ></g
+    ><g
+    ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKER-SOURCE-2f436d3c-ebba-4a27-a3a4-3ae540d1f338" markerWidth="2" refX="1"
+      ><circle fill="rgb(0, 255, 0)" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKER-start-SOURCE-2f436d3c-ebba-4a27-a3a4-3ae540d1f338" markerWidth="2" refX="1"
+      ><circle fill="rgb(255, 0, 0)" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><polyline points="160.0,704.0 192.0,704.0 192.0,720.0 224.0,720.0 224.0,704.0 240.0,688.0 272.0,688.0 272.0,656.0 256.0,640.0 256.0,608.0 208.0,608.0 208.0,624.0 192.0,640.0 176.0,624.0 144.0,656.0 160.0,672.0 160.0,704.0" marker-mid="url(#MARKER-SOURCE-2f436d3c-ebba-4a27-a3a4-3ae540d1f338)" fill="none" id="SOURCE-2f436d3c-ebba-4a27-a3a4-3ae540d1f338" stroke="rgb(0, 255, 0)" marker-start="url(#MARKER-start-SOURCE-2f436d3c-ebba-4a27-a3a4-3ae540d1f338)" stroke-width="1%"
+    /></g
+    ><g
+    ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKER-TARGET-2f436d3c-ebba-4a27-a3a4-3ae540d1f338" markerWidth="2" refX="1"
+      ><circle fill="rgb(0, 0, 255)" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><marker refY="1" preserveAspectRatio="xMidYMid meet" markerHeight="2" id="MARKER-start-TARGET-2f436d3c-ebba-4a27-a3a4-3ae540d1f338" markerWidth="2" refX="1"
+      ><circle fill="rgb(255, 0, 0)" r="1" cx="1" cy="1" stroke="none"
+      /></marker
+      ><polyline points="144.0,720.0 160.0,720.0 192.0,752.0 240.0,752.0 256.0,736.0 304.0,736.0 320.0,720.0 320.0,688.0 304.0,672.0 320.0,656.0 320.0,608.0 288.0,576.0 240.0,576.0 224.0,560.0 176.0,560.0 144.0,592.0 128.0,592.0 96.0,624.0 112.0,640.0 112.0,672.0 96.0,672.0 96.0,704.0 128.0,736.0 144.0,720.0" marker-mid="url(#MARKER-TARGET-2f436d3c-ebba-4a27-a3a4-3ae540d1f338)" fill="none" id="TARGET-2f436d3c-ebba-4a27-a3a4-3ae540d1f338" stroke="rgb(0, 0, 255)" marker-start="url(#MARKER-start-TARGET-2f436d3c-ebba-4a27-a3a4-3ae540d1f338)" stroke-width="1%"
+    /></g
+  ></g
+></svg
+>

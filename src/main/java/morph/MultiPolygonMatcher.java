@@ -17,9 +17,12 @@ import java.nio.file.Paths;
 import java.util.*;
 
 /**
- * Class not in use yet, just for some experiments to handle multipolygons
- * Purpose of this class is to have 2 Multipolygons source and target be split into OctiLineStrings and try to match
- * them as bijectively as possibly
+ * Class experimental and not in use, just for some experiments to handle multipolygons
+ * Purpose of this class is to have 2 Multipolygons source and target be split into Polygons and OctiLineStrings
+ * and try to match them as bijectively as possibly
+ *
+ * This is a preprocession step to decide which source polygons to morph into which one of the target polygons or where to create/delete a new polygon our of a point
+ * The latter is for the case that a new area becomes reachable on the traveltime map, e.g. by a bus stop
  */
 public class MultiPolygonMatcher {
     private MultiPolygon source, target;
@@ -81,10 +84,10 @@ public class MultiPolygonMatcher {
      * Assertion: for each source/target there is exactly one polygon which contains startNode
      * todo use that startNode to match the 2 polygons
      *
-     * @param source
-     * @param target
-     * @param startNode
-     * @return
+     * @param source multipolygon 1
+     * @param target multipolygon 2
+     * @param startNode location on the traveltimemap
+     * @return the flattened lists of polygons
      */
     public Pair<List<Polygon>, List<Polygon>> splitMultiPolygons(MultiPolygon source, MultiPolygon target, Point startNode) {
         this.source = source;
@@ -102,14 +105,14 @@ public class MultiPolygonMatcher {
     }
 
 
-    /**
+    /** experimental
      * matches the outer rings with each other,
      * inner src rings
      * only 1:m and n:1 or 1:1 matchings, no n:m
      *
-     * @param src
-     * @param tar
-     * @return
+     * @param src poly1
+     * @param tar poly2
+     * @return the rules, which src OctiLineString should be morphed into which tar OctiLineString
      */
     public List<Pair<OctiLineString, OctiLineString>> matchPolygonOnetoOne(Polygon src, Polygon tar) {
         List<Pair<OctiLineString, OctiLineString>> matchings = new ArrayList<>();
@@ -217,12 +220,12 @@ public class MultiPolygonMatcher {
      * <p>
      *      this way (greedy experiment, currently IoU)
      *          <ul>
-     *              <li> IoU= 0 ==> spawn/despawn </li>
+     *              <li> IoU= 0 ==&gt; spawn/despawn </li>
      *          </ul>
      *
      * @param src the sourcePolygons
      * @param tar the targetPolygons
-     * @return
+     * @return the established relations of the polygons
      */
     public List<Pair<Polygon, Polygon>> matchMultiPolygons(List<Polygon> src, List<Polygon> tar) {
         logger.debug("matching " + src.size() + " source with " + tar.size() + " target polygons");

@@ -767,12 +767,13 @@ public class OctiLineMatcher {
 
     /**
      * Helper function, returning the index (0-indexed) of the input parameter corresponding to the best Score
-     * if Equal MATCH < INSERT < DELETE
+     * if Equal MATCH &lt; INSERT &lt; DELETE
      *
      * @param matchScore  score corresponding to MATCH (=0)
      * @param deleteScore score corresponding to DELETE (=1)
      * @param insertScore score corresponding to INSERT (=2)
      * @return index of the input parameter corresponding to the best Score
+     * @throws NoMinimumOperationException if all 3 parameters are +inf
      */
     public int minimumOperation(double matchScore, double deleteScore, double insertScore) throws NoMinimumOperationException {
         if (deleteScore < matchScore) {
