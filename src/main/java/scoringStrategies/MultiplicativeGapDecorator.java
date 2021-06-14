@@ -6,7 +6,7 @@ import morph.MatrixElement;
 import org.locationtech.jts.geom.Coordinate;
 
 /**
- * Gap Start are penalized/rewarded with a positive multiplier > 1
+ * Gap Start are penalized/rewarded with a positive multiplier greater than 1
  *
  */
 public class MultiplicativeGapDecorator extends StrategyDecorator{

@@ -26,11 +26,11 @@ public class MatrixElement {
         this.sourceEndPoint = sourceEndPoint;
         this.targetEndPoint = targetEndPoint;
     }
-    /** if equal : MATCH < INSERT < DELETE
+    /** if the scores are equal : MATCH &lt; INSERT &lt; DELETE
      *
-     * @param matchScore
-     * @param deleteScore
-     * @param insertScore
+     * @param matchScore the first score, correspoding to a MATCH ending in this MatrixElement
+     * @param deleteScore the second score, correspoding to a DELETE ending in this MatrixElement
+     * @param insertScore the third score, correspoding to an INSERT ending in this MatrixElement
      */
     public void setMinimumOperation(double matchScore, double deleteScore, double insertScore){
         if(matchScore == Double.POSITIVE_INFINITY && deleteScore == Double.POSITIVE_INFINITY && insertScore == Double.POSITIVE_INFINITY){

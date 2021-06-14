@@ -26,6 +26,7 @@ public class OctiGeometryFactory extends GeometryFactory {
      * A null or empty array creates an empty LineString.
      *
      * @param coordinates an array without null elements, or an empty array, or null
+     * @return the new OctiLineString
      */
     public OctiLineString createOctiLineString(Coordinate[] coordinates) {
         return createOctiLineString(coordinates != null ? getCoordinateSequenceFactory().create(coordinates) : null);
@@ -40,6 +41,7 @@ public class OctiGeometryFactory extends GeometryFactory {
      * A null or empty CoordinateSequence creates an empty OctiLineString.
      *
      * @param coordinates a CoordinateSequence (possibly empty), or null
+     * @return the new OctiLineString
      */
     public OctiLineString createOctiLineString(CoordinateSequence coordinates) {
         return new OctiLineString(coordinates, this);
@@ -49,15 +51,15 @@ public class OctiGeometryFactory extends GeometryFactory {
      * Helper method to extract an outer OctiLineString from a geometry
      * If the geom is a
      * <ul>
-     *     <li>OctiLineString -> geom is returned</li>
-     *     <li>Polygon -> exterior ring is returned</li>
-     *     <li>MultiPolygon -> exterior ring of the biggest polygon is returned</li>
+     *     <li>OctiLineStrin: geom is returned</li>
+     *     <li>Polygon: exterior ring is returned</li>
+     *     <li>MultiPolygon: exterior ring of the biggest polygon is returned</li>
      * </ul>
      * All else will throw an exception
      *
      * @param geom the geometry to extract from
      * @return the extracted OctiLineString
-     * @throws Exception
+     * @throws Exception is thrown when <code>code</code> is a <code>GeometryCollection</code>
      */
     public OctiLineString convertToOctiLineString(Geometry geom) throws Exception {
         logger.debug("converting geom: " + geom.toText());
